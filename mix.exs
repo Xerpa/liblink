@@ -49,16 +49,27 @@ defmodule Liblink.MixProject do
       aliases: aliases(),
       elixirc_paths: source_paths(Mix.env()),
       compilers: [:liblink | Mix.compilers()],
-      dialyzer: []
+      dialyzer: [
+        paths:
+          "_build/dev/**/*.beam"
+          |> Path.wildcard()
+          |> Enum.filter(&String.contains?(&1, "Elixir.Liblink."))
+          |> Enum.reject(&String.contains?(&1, "Elixir.Liblink.Hidden.beam")),
+        remove_defaults: [:unknown],
+        flags: [:underspecs, :unmatched_returns]
+      ]
     ]
   end
 
   def application do
-    [extra_applications: [:logger]]
+    [mod: {Liblink, []}, extra_applications: [:logger]]
   end
 
   defp deps do
-    [{:dialyzex, "~> 1.1.0", only: :dev}]
+    [
+      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.16", only: :dev, runtime: false}
+    ]
   end
 
   defp source_paths(:test), do: ["lib", "test/lib"]
