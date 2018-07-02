@@ -13,13 +13,15 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Recvmsg.Transition do
-  alias Liblink.Socket.Recvmsg.Fsm
   alias Liblink.Socket.Recvmsg.RecvState
   alias Liblink.Socket.Recvmsg.SubsState
 
   require Logger
 
-  @spec init_to_recv(Device.t(), Fsm.data_t()) :: Fsm.fsm_return()
+  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iolist -> term)
+
+  @spec init_to_recv(Device.t(), map) ::
+          {:cont, :ok, {RecvState, %{device: Device.t(), mqueue: term}}}
   def init_to_recv(device, data) do
     data =
       data
@@ -29,9 +31,11 @@ defmodule Liblink.Socket.Recvmsg.Transition do
     {:cont, :ok, {RecvState, data}}
   end
 
-  @spec recv_to_consume(pid | atom | {atom, atom}, Fsm.data_t()) :: Fsm.fsm_return()
+  @spec recv_to_consume(consumer_t, map) ::
+          {:cont, {:erro, :bad_consumer}, {RecvState, map}}
+          | {:cont, :ok, {SendState, map}}
   def recv_to_consume(consumer, data) do
-    Logger.info("recvmsg-fsm: recv -> consume")
+    _ = Logger.info("recvmsg-fsm: recv -> consume")
 
     consumer =
       case consumer do
@@ -70,9 +74,9 @@ defmodule Liblink.Socket.Recvmsg.Transition do
     end
   end
 
-  @spec recv_to_consume(iolist, Fsm.data_t()) :: Fsm.fsm_return()
+  @spec consume_to_recv(iolist, map) :: {:cont, :ok, {RecvState, map}}
   def consume_to_recv(message, data) do
-    Logger.info("recvmsg-fsm: consume -> recv")
+    _ = Logger.info("recvmsg-fsm: consume -> recv")
 
     mqueue = :queue.in(message, data.mqueue)
 
@@ -84,14 +88,16 @@ defmodule Liblink.Socket.Recvmsg.Transition do
     {:cont, :ok, {RecvState, n_data}}
   end
 
+  @spec consume_to_recv(map) :: {:cont, :ok, {RecvState, map}}
   def consume_to_recv(data) do
-    Logger.info("recvmsg-fsm: consume -> recv")
+    _ = Logger.info("recvmsg-fsm: consume -> recv")
 
     n_data = Map.delete(data, :consumer)
 
-    {:cont, :ok, {RecvState, data}}
+    {:cont, :ok, {RecvState, n_data}}
   end
 
+  @spec recv_to_consume__halt_polls(map) :: map
   defp recv_to_consume__halt_polls(data) do
     case Map.fetch(data, :poll) do
       :error ->
@@ -105,7 +111,8 @@ defmodule Liblink.Socket.Recvmsg.Transition do
     end
   end
 
-  @spec recv_to_consume__flush_messages(Fsm.data_t()) :: Fsm.fsm_return()
+  @spec recv_to_consume__flush_messages(map) ::
+          {:cont, :ok, {RecvState, map}} | {:cont, :ok, {SubState, map}}
   defp recv_to_consume__flush_messages(data) do
     case :queue.out(data.mqueue) do
       {:empty, _mqueue} ->

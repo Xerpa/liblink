@@ -19,13 +19,19 @@ defmodule Liblink.Socket.Monitor do
 
   require Logger
 
+  @spec start_link() :: {:ok, pid} | {:error, {:already_started, pid}}
   def start_link() do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec init(term) :: {:ok, Impl.state()}
+  @impl true
   def init(_args) do
     Impl.init()
+  end
+
+  @impl true
+  def terminate(_reason, _state) do
+    # TODO:term_all_sockets
   end
 
   @spec new_device((pid -> {:ok, Nif.t()} | term)) :: {:ok, Device.t()} | {:error, term}
@@ -33,7 +39,8 @@ defmodule Liblink.Socket.Monitor do
     GenServer.call(__MODULE__, {:new_device, new_sockfn})
   end
 
-  def handle_call(message, from, state) do
+  @impl true
+  def handle_call(message, _from, state) do
     case message do
       {:new_device, new_sockfn} ->
         Impl.new_device(state, new_sockfn)
@@ -44,6 +51,7 @@ defmodule Liblink.Socket.Monitor do
     end
   end
 
+  @impl true
   def handle_info(message, state) do
     case message do
       {:DOWN, tag, :process, _pid, _reason} ->

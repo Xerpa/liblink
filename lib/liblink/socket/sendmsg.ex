@@ -15,8 +15,6 @@
 defmodule Liblink.Socket.Sendmsg do
   use GenServer
 
-  alias Liblink.Socket.Device
-  alias Liblink.Socket.Sendmsg.Fsm
   alias Liblink.Socket.Sendmsg.Impl
 
   require Logger
@@ -104,7 +102,7 @@ defmodule Liblink.Socket.Sendmsg do
   end
 
   @impl true
-  def handle_call(message, from, state) do
+  def handle_call(message, _from, state) do
     case message do
       :halt ->
         Impl.halt(:sync, state)
@@ -119,7 +117,12 @@ defmodule Liblink.Socket.Sendmsg do
         Impl.sendmsg(message, deadline, :sync, state)
 
       message ->
-        _ = Logger.warn("[socket.sendmsg] ignoring unexpected message")
+        _ =
+          Logger.warn(
+            "[socket.sendmsg] ignoring unexpected message",
+            metadata: [data: [message: message]]
+          )
+
         {:noreply, state}
     end
   end

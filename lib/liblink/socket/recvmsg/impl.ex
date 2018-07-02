@@ -26,12 +26,14 @@ defmodule Liblink.Socket.Recvmsg.Impl do
 
   @type call_mode :: :sync | :async
 
-  @spec init() :: {:ok, state_t()}
+  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iolist -> term)
+
+  @spec init() :: {:ok, __MODULE__.state_t()}
   def init() do
     {:ok, %{fsm: Fsm.new()}}
   end
 
-  @spec halt(call_mode, state_t) :: {:reply, :ok, state_t()}
+  @spec halt(call_mode, state_t) :: {:reply, :ok, state_t}
   def halt(mode, state) do
     {fsm, data} = state.fsm
 
@@ -39,27 +41,36 @@ defmodule Liblink.Socket.Recvmsg.Impl do
   end
 
   @spec attach(Device.t(), call_mode, state_t) ::
-          {:reply, :ok, state_t()} | {:reply, {:error, :badstate}, state_t()}
+          {:reply, :ok, state_t} | {:reply, {:error, :badstate}, state_t}
   def attach(device, mode, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.attach(device, data) end, mode, state)
   end
 
+  @spec recvmsg(:sync, state_t) ::
+          {:reply, {:ok, iolist}, state_t}
+          | {:reply, {:error, :timeout}, state_t}
+          | {:reply, {:error, :empty}, state_t}
+          | {:reply, {:ok, :badstate}, state_t}
   def recvmsg(:sync, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.recvmsg(data) end, :sync, state)
   end
 
+  @spec poll(integer() | :infinity, pid, :sync, state_t) ::
+          {:reply, {:ok, reference}, state_t}
+          | {:reply, {:error, :badstate}, state_t}
   def poll(timeout, pid, :sync, state) do
     {fsm, data} = state.fsm
 
     case call_fsm(fn -> fsm.poll(pid, data) end, :sync, state) do
       reply = {:reply, {:ok, tag}, _data} when is_reference(tag) ->
-        unless timeout == :infinity do
-          Process.send_after(self(), {:halt, :poll, tag}, timeout)
-        end
+        _ =
+          unless timeout == :infinity do
+            Process.send_after(self(), {:halt, :poll, tag}, timeout)
+          end
 
         reply
 
@@ -68,37 +79,55 @@ defmodule Liblink.Socket.Recvmsg.Impl do
     end
   end
 
-  def halt_poll(tag, :async, state) do
+  @spec halt_poll(reference, call_mode, state_t) ::
+          {:reply, :ok, state_t}
+          | {:reply, {:error, :badstate}, state_t}
+          | {:noreply, state_t}
+  def halt_poll(tag, mode, state) do
     {fsm, data} = state.fsm
 
-    call_fsm(fn -> fsm.halt_poll(tag, data) end, :async, state)
+    call_fsm(fn -> fsm.halt_poll(tag, data) end, mode, state)
   end
 
+  @spec consume(consumer_t, call_mode, state_t) ::
+          {:reply, :ok, state_t}
+          | {:reply, {:error, :badstate}, state_t}
+          | {:noreply, state_t}
   def consume(consumer, mode, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.consume(consumer, data) end, mode, state)
   end
 
+  @spec halt_consumer(call_mode, state_t) ::
+          {:reply, :ok, state_t}
+          | {:reply, {:error, :badstate}, state_t}
+          | {:noreply, state_t}
   def halt_consumer(mode, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.halt_consumer(data) end, mode, state)
   end
 
+  @spec on_liblink_message(iolist, :async, state_t) :: {:noreply, state_t}
   def on_liblink_message(message, :async, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.on_liblink_message(message, data) end, :async, state)
   end
 
+  @spec on_monitor_message(
+          {:DOWN, reference, :process, pid | {atom, atom}, atom},
+          :async,
+          state_t
+        ) :: {:noreply, state_t}
   def on_monitor_message(message, :async, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.on_monitor_message(message, data) end, :async, state)
   end
 
-  @spec call_fsm((() -> Fsm.fsm_return()), call_mode, state_t()) ::
+  @spec call_fsm((() -> Fsm.fsm_return()), call_mode, state_t) ::
           {:noreply, state_t}
           | {:reply, term, state_t}
           | {:stop, :normal, state_t}

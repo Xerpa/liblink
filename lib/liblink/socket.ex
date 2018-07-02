@@ -14,12 +14,14 @@
 
 defmodule Liblink.Socket do
   alias Liblink.Nif
+  alias Liblink.Device
   alias Liblink.Socket.Monitor
   alias Liblink.Socket.Sendmsg
   alias Liblink.Socket.Recvmsg
 
   @dialyzer [:unknown]
 
+  @spec open(Nif.socket_type(), String.t()) :: {:ok, Device.t()} | {:error, term}
   def open(type, endpoint) do
     uniqid = to_string(:erlang.unique_integer())
     int_endpoint = "inproc://liblink-socket-device-" <> uniqid
@@ -27,6 +29,7 @@ defmodule Liblink.Socket do
     Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
   end
 
+  @spec close(Device.t()) :: :ok
   def close(device) do
     Recvmsg.halt(device.recvmsg_pid)
     Sendmsg.halt(device.sendmsg_pid)
@@ -34,14 +37,19 @@ defmodule Liblink.Socket do
     :ok
   end
 
+  @spec sendmsg(Device.t(), iolist, integer() | :infinity) ::
+          Nif.sendmsg_return() | {:error, :timeout}
   def sendmsg(device, message, timeout \\ 1_000) do
     Sendmsg.sendmsg(device.sendmsg_pid, message, timeout)
   end
 
+  @spec sendmsg_async(Device.t(), iolist, integer() | :infinity) :: :ok
   def sendmsg_async(device, message, timeout \\ :infinity) do
     Sendmsg.sendmsg_async(device.sendmsg_pid, message, timeout)
   end
 
+  @spec recvmsg(Device.t(), integer() | :infinity) ::
+          {:error, :empty} | {:error, :timeout} | {:ok, iolist}
   def recvmsg(device, timeout \\ 1_000) do
     case Recvmsg.recvmsg(device.recvmsg_pid, timeout) do
       {:error, :empty} ->
@@ -61,6 +69,7 @@ defmodule Liblink.Socket do
     end
   end
 
+  @spec consume(Device.t(), integer() | :infinity) :: :ok
   def consume(device, consumer, timeout \\ 1_000) do
     Recvmsg.consume(device.recvmsg_pid, consumer, timeout)
   end

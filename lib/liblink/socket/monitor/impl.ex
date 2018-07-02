@@ -20,15 +20,15 @@ defmodule Liblink.Socket.Monitor.Impl do
 
   require Logger
 
-  @opaque state :: %{procs: MapSet.t(), socks: map}
+  @opaque state_t :: %{procs: MapSet.t(), socks: map}
 
-  @spec init() :: {:ok, state}
+  @spec init() :: {:ok, state_t}
   def init() do
     {:ok, %{procs: MapSet.new(), socks: Map.new()}}
   end
 
-  @spec new_device(state, (pid -> Nif.t())) ::
-          {:reply, {:ok, Device.t()}, state} | {:reply, :error, state}
+  @spec new_device(state_t, (pid -> Nif.t())) ::
+          {:reply, {:ok, Device.t()}, state_t} | {:reply, :error, state_t}
   def new_device(state, new_sockfn) when is_function(new_sockfn, 1) do
     {:ok, recvmsg_pid} = Recvmsg.start()
     {:ok, sendmsg_pid} = Sendmsg.start()
@@ -64,6 +64,7 @@ defmodule Liblink.Socket.Monitor.Impl do
     end
   end
 
+  @spec down(state_t, reference) :: {:noreply, state_t}
   def down(state, tag) do
     case Map.fetch(state.procs, tag) do
       {:ok, sock} ->

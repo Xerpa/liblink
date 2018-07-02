@@ -25,8 +25,7 @@ defmodule Liblink do
       %{
         id: Monitor,
         start: {Monitor, :start_link, []},
-        restart: :permanent,
-        shutdown: 30_000
+        restart: :permanent
       }
     ]
 

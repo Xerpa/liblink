@@ -17,6 +17,8 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
 
   alias Liblink.Socket.Recvmsg.Transition
 
+  @type consumer_t :: {atom, atom, list} | (iolist -> term) | pid | atom | {atom, atom}
+
   @impl true
   def halt_consumer(data) do
     Transition.consume_to_recv(data)
@@ -69,6 +71,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
     end
   end
 
+  @spec invoke_fn({atom, atom, list}) :: term | {:error, term}
   defp invoke_fn({module, function, args}) do
     try do
       apply(module, function, args)
@@ -84,6 +87,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
     end
   end
 
+  @spec invoke_fn((iolist -> term), iolist) :: term | {:error, term}
   defp invoke_fn(fun, message) when is_function(fun, 1) do
     try do
       apply(fun, [message])
@@ -99,6 +103,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
     end
   end
 
+  @spec invoke_consumer(%{pid_or_fun: consumer_t}, iolist) :: term
   defp invoke_consumer(consumer, message) do
     message = Enum.reverse(message)
 

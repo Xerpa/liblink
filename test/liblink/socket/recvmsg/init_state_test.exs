@@ -21,6 +21,8 @@ defmodule Liblink.Socket.Recvmsg.InitStateTest do
   alias Liblink.Socket.Recvmsg.InitState
   alias Liblink.Socket.Recvmsg.TermState
 
+  @moduletag capture_log: true
+
   test "can halt" do
     {InitState, data} = Fsm.new()
 

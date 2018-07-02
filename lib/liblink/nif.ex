@@ -20,6 +20,8 @@ defmodule Liblink.Nif do
 
   @opaque socket_t :: reference
 
+  @type socket_type :: :router | :dealer
+
   @type signal_return :: :ok | :error | {:error, :badsignal} | {:error, :badargs}
 
   @type sendmsg_return :: :ok | :error | {:error, :ioerror} | {:error, :badargs}
@@ -40,7 +42,7 @@ defmodule Liblink.Nif do
   end
 
   @doc false
-  @spec new_socket(:router | :dealer, String.t(), String.t(), pid()) :: new_socket_return
+  @spec new_socket(socket_type, String.t(), String.t(), pid()) :: new_socket_return
   def new_socket(socktype, ext_endpoint, int_endpoint, server)
       when is_socket_type(socktype) and is_binary(ext_endpoint) and is_binary(int_endpoint) and
              is_pid(server),
