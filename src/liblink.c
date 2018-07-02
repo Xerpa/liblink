@@ -66,7 +66,7 @@ void _liblink_state_t (liblink_sock_t *socket)
   {
     if (socket->state == LIBLINK_STATE_RUNNING || socket->state == LIBLINK_STATE_WAITING)
     {
-      socket->state = LIBLINK_STATE_QUITTING;
+      socket->state = LIBLINK_STATE_HALTING;
       zloop_reader_end(socket->reactor, socket->pull);
       zloop_reader_end(socket->reactor, socket->sock);
     }
@@ -106,7 +106,7 @@ int _liblink_ioloop_pull (zloop_t *zloop, zsock_t *sock, void *args)
     case -1:
       zmsg_send(&msg, socket->sock);
       break;
-    case LIBLINK_SIGNAL_QUIT:
+    case LIBLINK_SIGNAL_HALT:
       _liblink_state_t(socket);
       zmsg_destroy(&msg);
       return(-1);
@@ -146,7 +146,7 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
   if (recvfn == NULL)
   { return(NULL); }
 
-  if (strcmp(int_endpoint, "ipc://") != 0)
+  if (strstr("inproc://", int_endpoint) != NULL)
   { return(NULL); }
 
   if (NULL == (socket = malloc(sizeof(liblink_sock_t))))
@@ -195,14 +195,14 @@ int liblink_sock_signal (liblink_sock_t *socket, enum liblink_signal signal)
 {
   zmsg_t *msg = zmsg_new_signal((byte) signal);
 
-  if (msg != NULL && socket->state != LIBLINK_STATE_QUITTING)
+  if (msg != NULL && socket->state != LIBLINK_STATE_HALTING)
   { return(zmsg_send(&msg, socket->push)); }
   else
   {
     if (msg != NULL)
     { zmsg_destroy(&msg); }
 
-    if (signal == LIBLINK_SIGNAL_QUIT)
+    if (signal == LIBLINK_SIGNAL_HALT)
     { return(0); }
     else
     { return(-1); }
@@ -214,7 +214,7 @@ enum liblink_state liblink_sock_state (liblink_sock_t *socket)
 
 int liblink_sock_write (liblink_sock_t *socket, zmsg_t **msg)
 {
-  if (socket->state != LIBLINK_STATE_QUITTING)
+  if (socket->state != LIBLINK_STATE_HALTING)
   { return(zmsg_send(msg, socket->push)); }
   else
   {

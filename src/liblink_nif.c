@@ -155,7 +155,7 @@ e_handle_syserr:
 }
 
 static
-ERL_NIF_TERM _liblink_erlnif_send (ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+ERL_NIF_TERM _liblink_erlnif_sendmsg (ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ErlNifBinary payload;
   zmsg_t *msg = NULL;
@@ -217,14 +217,18 @@ static
 ERL_NIF_TERM _liblink_erlnif_term (ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   liblink_erlnif_t *data;
+  liblink_sock_t *socket;
   ErlNifResourceType *type = (ErlNifResourceType *) enif_priv_data(env);
 
   if (argc != 1 || 0 == enif_get_resource(env, argv[0], type, (void **) &data))
   { return(enif_make_atom(env, "error")); }
 
-  if (0 != liblink_sock_signal(data->socket, LIBLINK_SIGNAL_QUIT))
+  socket = data->socket;
+  data->socket = NULL;
+  if (0 != liblink_sock_signal(socket, LIBLINK_SIGNAL_HALT))
   { return(enif_make_atom(env, "error")); }
-  liblink_sock_wait_term(data->socket);
+  liblink_sock_wait_term(socket);
+  liblink_sock_destroy(socket);
 
   return(enif_make_atom(env, "ok"));
 }
@@ -270,8 +274,8 @@ ERL_NIF_TERM _liblink_erlnif_state (ErlNifEnv *env, int argc, const ERL_NIF_TERM
 
   switch (liblink_sock_state(data->socket))
   {
-  case LIBLINK_STATE_QUITTING:
-    return(enif_make_atom(env, "quitting"));
+  case LIBLINK_STATE_HALTING:
+    return(enif_make_atom(env, "halting"));
   case LIBLINK_STATE_RUNNING:
     return(enif_make_atom(env, "running"));
   case LIBLINK_STATE_WAITING:
@@ -284,7 +288,7 @@ ERL_NIF_TERM _liblink_erlnif_state (ErlNifEnv *env, int argc, const ERL_NIF_TERM
 ErlNifFunc liblink_erlnif[] =
 {
   {"new_socket", 4, _liblink_erlnif_new_socket, 0},
-  {"send", 2, _liblink_erlnif_send, ERL_NIF_DIRTY_JOB_IO_BOUND},
+  {"sendmsg", 2, _liblink_erlnif_sendmsg, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"term", 1, _liblink_erlnif_term, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"signal", 2, _liblink_erlnif_signal, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"state", 1, _liblink_erlnif_state, 0}
