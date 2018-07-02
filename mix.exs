@@ -68,11 +68,13 @@ defmodule Liblink.MixProject do
   defp deps do
     [
       {:dialyxir, "~> 0.5", only: :dev, runtime: false},
-      {:ex_doc, "~> 0.16", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.16", only: :dev, runtime: false},
+      {:benchee, "~> 0.11", only: :bench, runtime: false}
     ]
   end
 
   defp source_paths(:test), do: ["lib", "test/lib"]
+  defp source_paths(:bench), do: ["lib", "bench/"]
   defp source_paths(_), do: ["lib"]
 
   defp aliases do
