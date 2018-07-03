@@ -18,19 +18,21 @@ defmodule Liblink.Socket.MonitorTest do
   alias Liblink.Socket
   alias Liblink.Socket.Monitor
 
+  import Liblink.Random
+
   test "initial state" do
     assert %{procs_count: 0, socks_count: 0} == Monitor.stats()
   end
 
   test "start monitoring after socket.open" do
     assert {:ok, %{procs_count: 2, socks_count: 1}} =
-             Socket.open(:router, "@inproc://liblink-socket-monitor-test", fn _device ->
+             Socket.open(:router, "@" <> random_inproc_endpoint(), fn _device ->
                Monitor.stats()
              end)
   end
 
   test "cleanup state after socket.close" do
-    Socket.open(:router, "@inproc://liblink-socket-monitor-test", fn _device ->
+    Socket.open(:router, "@" <> random_inproc_endpoint(), fn _device ->
       nil
     end)
 

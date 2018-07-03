@@ -19,22 +19,24 @@ defmodule Liblink.Socket.Sendmsg.ImplTest do
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg.Impl
 
+  import Liblink.Random
+
   setup do
-    uniqid = :erlang.unique_integer()
+    endpoint = random_inproc_endpoint()
 
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc://liblink-nif-test-#{uniqid}",
-        "inproc://liblink-nif-test-router-#{uniqid}",
+        "@" <> endpoint,
+        random_inproc_endpoint(),
         self()
       )
 
     {:ok, dealer} =
       Nif.new_socket(
         :dealer,
-        ">inproc://liblink-nif-test-#{uniqid}",
-        "inproc://liblink-nif-test-dealer-#{uniqid}",
+        ">" <> endpoint,
+        random_inproc_endpoint(),
         self()
       )
 

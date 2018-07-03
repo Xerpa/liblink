@@ -22,14 +22,14 @@ defmodule Liblink.Socket.Sendmsg.SendStateTest do
   alias Liblink.Socket.Sendmsg.SendState
   alias Liblink.Socket.Sendmsg.TermState
 
-  setup do
-    uniqid = :erlang.unique_integer()
+  import Liblink.Random
 
+  setup do
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc://liblink-nif-test-#{uniqid}",
-        "inproc://liblink-nif-test-router-#{uniqid}",
+        "@" <> random_inproc_endpoint(),
+        random_inproc_endpoint(),
         self()
       )
 

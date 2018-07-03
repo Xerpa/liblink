@@ -19,25 +19,28 @@ defmodule Liblink.Socket.SendmsgTest do
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg
 
+  import Liblink.Random
+
   @moduletag capture_log: true
 
   setup env do
     {:ok, pid} = Sendmsg.start()
-    uniqid = :erlang.unique_integer()
+
+    endpoint = random_inproc_endpoint()
 
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc://liblink-socket-sendmsg-test-#{uniqid}",
-        "inproc://liblink-socket-sendmsg-test-router-#{uniqid}",
+        "@" <> endpoint,
+        random_inproc_endpoint(),
         self()
       )
 
     {:ok, dealer} =
       Nif.new_socket(
         :dealer,
-        ">inproc://liblink-socket-sendmsg-test-#{uniqid}",
-        "inproc://liblink-socket-sendmsg-test-dealer-#{uniqid}",
+        ">" <> endpoint,
+        random_inproc_endpoint(),
         self()
       )
 
