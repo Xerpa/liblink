@@ -51,6 +51,18 @@ defmodule Liblink.Socket do
     end
   end
 
+  @spec open(Nif.socket_type(), String.t(), (Device.t() -> term)) ::
+          {:ok, term} | {:error, term} | {:error, :bad_endpoint}
+  def open(type, endpoint, handler) do
+    with {:ok, socket} <- open(type, endpoint) do
+      try do
+        {:ok, handler.(socket)}
+      after
+        close(socket)
+      end
+    end
+  end
+
   @spec close(Device.t()) :: :ok
   def close(device) do
     Recvmsg.halt(device.recvmsg_pid)
