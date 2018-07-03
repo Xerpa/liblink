@@ -26,12 +26,26 @@ defmodule Liblink.Socket.Monitor do
 
   @impl true
   def init(_args) do
+    Process.flag(:trap_exit, true)
+
     Impl.init()
   end
 
+  @spec stats :: map
+  def stats() do
+    GenServer.call(__MODULE__, :stats)
+  end
+
   @impl true
-  def terminate(_reason, _state) do
-    # TODO:term_all_sockets
+  def terminate(reason, state) do
+    Logger.debug("socket.monitor is terminated", metadata: [data: [reason: reason]])
+
+    if Enum.empty?(state.procs) do
+      :ok
+    else
+      Logger.info("closing all remaining sockets")
+      Impl.stop(state)
+    end
   end
 
   @spec new_device((pid -> {:ok, Nif.t()} | term)) :: {:ok, Device.t()} | {:error, term}
@@ -45,6 +59,9 @@ defmodule Liblink.Socket.Monitor do
       {:new_device, new_sockfn} ->
         Impl.new_device(state, new_sockfn)
 
+      :stats ->
+        Impl.stats(state)
+
       message ->
         _ = Logger.warn("unexpected message", metadata: [data: [message: message]])
         {:reply, {:error, :badmsg}, state}
@@ -56,6 +73,12 @@ defmodule Liblink.Socket.Monitor do
     case message do
       {:DOWN, tag, :process, _pid, _reason} ->
         Impl.down(state, tag)
+
+      {:EXIT, _from, reason} ->
+        Logger.debug("socket.monitor is exiting", metadata: [data: [reason: reason]])
+
+        state = Impl.stop(state)
+        {:stop, reason, state}
 
       message ->
         _ = Logger.warn("unexpected message", metadata: [data: [message: message]])

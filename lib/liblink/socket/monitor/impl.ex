@@ -20,11 +20,11 @@ defmodule Liblink.Socket.Monitor.Impl do
 
   require Logger
 
-  @opaque state_t :: %{procs: MapSet.t(), socks: map}
+  @opaque state_t :: %{procs: map, socks: map}
 
   @spec init() :: {:ok, state_t}
   def init() do
-    {:ok, %{procs: MapSet.new(), socks: Map.new()}}
+    {:ok, %{procs: Map.new(), socks: Map.new()}}
   end
 
   @spec new_device(state_t, (pid -> Nif.t())) ::
@@ -37,7 +37,7 @@ defmodule Liblink.Socket.Monitor.Impl do
 
     case new_sockfn.(recvmsg_pid) do
       {:ok, socket} ->
-        new_socks = MapSet.new([recvmsg_tag, sendmsg_tag])
+        new_socks = Map.new([{recvmsg_tag, recvmsg_pid}, {sendmsg_tag, sendmsg_pid}])
         new_procs = Map.new([{recvmsg_tag, socket}, {sendmsg_tag, socket}])
 
         new_state =
@@ -64,6 +64,28 @@ defmodule Liblink.Socket.Monitor.Impl do
     end
   end
 
+  @spec stats(state_t) :: {:reply, map, state_t}
+  def stats(state) do
+    stats = %{socks_count: Enum.count(state.socks), procs_count: Enum.count(state.procs)}
+
+    {:reply, stats, state}
+  end
+
+  @spec stop(state_t) :: state_t
+  def stop(state) do
+    state.socks
+    |> Enum.map(fn {socket, procs} ->
+      procs
+      |> Map.values()
+      |> Enum.each(&Liblink.Socket.Shared.halt(&1, 100))
+
+      Nif.term(socket)
+    end)
+
+    {:ok, new_state} = init()
+    new_state
+  end
+
   @spec down(state_t, reference) :: {:noreply, state_t}
   def down(state, tag) do
     case Map.fetch(state.procs, tag) do
@@ -72,14 +94,14 @@ defmodule Liblink.Socket.Monitor.Impl do
           state
           |> Map.update!(:procs, &Map.delete(&1, tag))
           |> Map.update!(:socks, fn socks ->
-            Map.update!(socks, sock, &MapSet.delete(&1, tag))
+            Map.update!(socks, sock, &Map.delete(&1, tag))
           end)
 
         procs = Map.fetch!(temp_state.socks, sock)
 
         new_state =
           if Enum.empty?(procs) do
-            {:ok, _pid} = Task.start_link(fn -> Nif.term(sock) end)
+            Nif.term(sock)
 
             Map.update!(temp_state, :socks, &Map.delete(&1, sock))
           else
