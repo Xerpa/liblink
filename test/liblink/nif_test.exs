@@ -2,146 +2,153 @@ defmodule Liblink.NifTest do
   use ExUnit.Case, async: true
 
   alias Liblink.Nif
-  alias Test.Liblink.Socket
 
   describe "router / dealer" do
-    setup do
-      Nif.load()
+    setup env do
+      this = self()
+      uniqid = :erlang.unique_integer()
 
-      session = :erlang.unique_integer([:positive])
+      {pid, ref} =
+        if env[:ephemeral] do
+          spawn_monitor(fn ->
+            receive do
+              :halt ->
+                :ok
 
-      {:ok, router} = Socket.start_link()
-      {:ok, dealer} = Socket.start_link()
+              {:liblink_message, message} ->
+                send(this, {:liblink_message, message})
+            end
+          end)
+        else
+          {this, nil}
+        end
 
-      {:ok, router_device} =
+      {:ok, router} =
         Nif.new_socket(
           :router,
-          "@inproc:///liblink-nif-test-#{session}",
-          "inproc://liblink-niftest-router-#{session}",
-          router
+          "@inproc://liblink-nif-test-#{uniqid}",
+          "inproc://liblink-nif-test-router-#{uniqid}",
+          pid
         )
 
-      {:ok, dealer_device} =
+      {:ok, dealer} =
         Nif.new_socket(
           :dealer,
-          ">inproc:///liblink-nif-test-#{session}",
-          "inproc://liblink-niftest-dealer-#{session}",
-          dealer
+          ">inproc://liblink-nif-test-#{uniqid}",
+          "inproc://liblink-nif-test-dealer-#{uniqid}",
+          pid
         )
 
       on_exit(fn ->
-        Nif.term(router_device)
-        Nif.term(dealer_device)
+        Nif.term(router)
+        Nif.term(dealer)
       end)
 
-      {:ok,
-       [
-         router: router,
-         dealer: dealer,
-         router_device: router_device,
-         dealer_device: dealer_device
-       ]}
+      {:ok, [router: router, dealer: dealer, receiver: {pid, ref}]}
     end
 
-    test "send/recv single message", state do
-      assert :ok == Nif.send(state.dealer_device, "ping")
-      assert {:ok, [msgk, "ping"]} = GenServer.call(state.router, :pop)
-      assert :ok == Nif.send(state.router_device, [msgk, "pong"])
-      assert {:ok, ["pong"]} == GenServer.call(state.dealer, :pop)
+    test "sendmsg/recv single message", state do
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
+      assert_receive {:liblink_message, ["ping", msgkey]}
+
+      assert :ok == Nif.sendmsg(state.router, [msgkey, "pong"])
+      assert_receive {:liblink_message, ["pong"]}
     end
 
     test "router receives messages asynchronously", state do
-      assert :ok == Nif.send(state.dealer_device, "ping-0")
-      assert :ok == Nif.send(state.dealer_device, "ping-1")
-      assert :ok == Nif.send(state.dealer_device, "ping-2")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-0")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-1")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-2")
 
-      assert {:ok, [_, "ping-0"]} = GenServer.call(state.router, :pop)
-      assert {:ok, [_, "ping-1"]} = GenServer.call(state.router, :pop)
-      assert {:ok, [_, "ping-2"]} = GenServer.call(state.router, :pop)
+      assert_receive {:liblink_message, ["ping-0", _]}
+      assert_receive {:liblink_message, ["ping-1", _]}
+      assert_receive {:liblink_message, ["ping-2", _]}
     end
 
     test "dealer receives messages asynchronously", state do
-      assert :ok == Nif.send(state.dealer_device, "ping-0")
-      assert :ok == Nif.send(state.dealer_device, "ping-1")
-      assert :ok == Nif.send(state.dealer_device, "ping-2")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-0")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-1")
+      assert :ok == Nif.sendmsg(state.dealer, "ping-2")
 
-      assert {:ok, [msgk0, "ping-0"]} = GenServer.call(state.router, :pop)
-      assert {:ok, [msgk1, "ping-1"]} = GenServer.call(state.router, :pop)
-      assert {:ok, [msgk2, "ping-2"]} = GenServer.call(state.router, :pop)
+      assert_receive {:liblink_message, ["ping-0", msgkey0]}
+      assert_receive {:liblink_message, ["ping-1", msgkey1]}
+      assert_receive {:liblink_message, ["ping-2", msgkey2]}
 
-      assert :ok == Nif.send(state.router_device, [msgk2, "pong-2"])
-      assert :ok == Nif.send(state.router_device, [msgk1, "pong-1"])
-      assert :ok == Nif.send(state.router_device, [msgk0, "pong-0"])
+      assert :ok == Nif.sendmsg(state.router, [msgkey2, "pong-2"])
+      assert :ok == Nif.sendmsg(state.router, [msgkey1, "pong-1"])
+      assert :ok == Nif.sendmsg(state.router, [msgkey0, "pong-0"])
 
-      assert {:ok, ["pong-2"]} = GenServer.call(state.dealer, :pop)
-      assert {:ok, ["pong-1"]} = GenServer.call(state.dealer, :pop)
-      assert {:ok, ["pong-0"]} = GenServer.call(state.dealer, :pop)
+      assert_receive {:liblink_message, ["pong-2"]}
+      assert_receive {:liblink_message, ["pong-1"]}
+      assert_receive {:liblink_message, ["pong-0"]}
     end
 
     test "router flow control | stop receiving", state do
-      assert :ok == Nif.signal(state.router_device, :stop)
-      :timer.sleep(100) # allow the zloop to cancel the reader
-      assert :ok == Nif.send(state.dealer_device, "ping")
+      assert :ok == Nif.signal(state.router, :stop)
+      :timer.sleep(100)
+      assert :waiting == Nif.state(state.router)
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
 
-      assert {:error, :timeout} == GenServer.call(state.router, :pop)
+      refute_receive {:liblink_message, _}
     end
 
     test "router flow control | resume receiving", state do
-      assert :ok == Nif.signal(state.router_device, :stop)
+      assert :ok == Nif.signal(state.router, :stop)
       :timer.sleep(100)
-      assert :waiting == Nif.state(state.router_device)
-      assert :ok == Nif.send(state.dealer_device, "ping")
+      assert :waiting == Nif.state(state.router)
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
+      refute_receive {:liblink_message, _}
 
-      assert {:error, :timeout} == GenServer.call(state.router, :pop)
-      assert :ok == Nif.signal(state.router_device, :cont)
-      assert {:ok, [_, "ping"]} = GenServer.call(state.router, :pop)
-      assert :running == Nif.state(state.router_device)
+      assert :ok == Nif.signal(state.router, :cont)
+      assert_receive {:liblink_message, ["ping", _]}
+      assert :running == Nif.state(state.router)
     end
 
     test "dealer flow control | stop receiving", state do
-      assert :ok == Nif.signal(state.dealer_device, :stop)
+      assert :ok == Nif.signal(state.dealer, :stop)
       :timer.sleep(100)
-      assert :waiting == Nif.state(state.dealer_device)
-      assert :ok == Nif.send(state.dealer_device, "ping")
-      assert {:ok, [msgk, "ping"]} = GenServer.call(state.router, :pop)
-      assert :ok == Nif.send(state.router_device, [msgk, "pong"])
+      assert :waiting == Nif.state(state.dealer)
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
+      assert_receive {:liblink_message, ["ping", msgkey]}
+      assert :ok == Nif.sendmsg(state.router, [msgkey, "pong"])
 
-      assert {:error, :timeout} = GenServer.call(state.dealer, :pop)
+      refute_receive {:liblink_message, _}
     end
 
     test "dealer flow control | resume receiving", state do
-      assert :ok == Nif.signal(state.dealer_device, :stop)
+      assert :ok == Nif.signal(state.dealer, :stop)
       :timer.sleep(100)
-      assert :waiting == Nif.state(state.dealer_device)
-      assert :ok == Nif.send(state.dealer_device, "ping")
-      assert {:ok, [msgk, "ping"]} = GenServer.call(state.router, :pop)
-      assert :ok == Nif.send(state.router_device, [msgk, "pong"])
+      assert :waiting == Nif.state(state.dealer)
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
+      assert_receive {:liblink_message, ["ping", msgkey]}
+      assert :ok == Nif.sendmsg(state.router, [msgkey, "pong"])
 
-      assert {:error, :timeout} = GenServer.call(state.dealer, :pop)
-      assert :ok == Nif.signal(state.dealer_device, :cont)
-      assert {:ok, ["pong"]} == GenServer.call(state.dealer, :pop)
-      assert :running == Nif.state(state.dealer_device)
+      refute_receive {:liblink_message, _}
+      assert :ok == Nif.signal(state.dealer, :cont)
+      assert_receive {:liblink_message, ["pong"]}
+      assert :running == Nif.state(state.dealer)
     end
 
+    @tag ephemeral: true
     test "router_device enter waiting state if router vanishes", state do
-      GenServer.stop(state.router)
-
-      refute Process.alive?(state.router)
-      assert :ok = Nif.send(state.dealer_device, "ping")
-      :timer.sleep(100)
-      assert :waiting == Nif.state(state.router_device)
+      {pid, ref} = state.receiver
+      send(pid, :halt)
+      assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+      assert :ok = Nif.sendmsg(state.dealer, "ping")
+      refute_receive {:liblink_message, _}
+      assert :waiting == Nif.state(state.router)
     end
 
+    @tag ephemeral: true
     test "dealer_device enter waiting state if dealer vanishes", state do
-      assert :ok == Nif.send(state.dealer_device, "ping")
-      assert {:ok, [msgk, "ping"]} = GenServer.call(state.router, :pop)
-
-      GenServer.stop(state.dealer)
-
-      refute Process.alive?(state.dealer)
-      assert :ok == Nif.send(state.router_device, [msgk, "pong"])
-      :timer.sleep(100)
-      assert :waiting == Nif.state(state.dealer_device)
+      {pid, ref} = state.receiver
+      assert :ok == Nif.sendmsg(state.dealer, "ping")
+      assert_receive {:liblink_message, ["ping", msgkey]}
+      send(pid, :halt)
+      assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+      assert :ok == Nif.sendmsg(state.router, [msgkey, "pong"])
+      refute_receive {:liblink_message, _}
+      assert :waiting == Nif.state(state.dealer)
     end
   end
 end

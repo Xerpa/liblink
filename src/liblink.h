@@ -33,8 +33,8 @@ typedef struct _liblink_sock_t liblink_sock_t;
 // the state the zloop is currently in
 enum liblink_state
 {
-  // the socket is quitting and no further actions are allowed
-  LIBLINK_STATE_QUITTING,
+  // the socket is halting and no further actions are allowed
+  LIBLINK_STATE_HALTING,
   // in this state writes are allowed but it won't probe the socket
   // for reads
   LIBLINK_STATE_WAITING,
@@ -46,7 +46,7 @@ enum liblink_signal
 {
   // terminate the socket. you should use `liblink_wait_term` after
   // sending this signal to allow the socket to cleanup its resources.
-  LIBLINK_SIGNAL_QUIT,
+  LIBLINK_SIGNAL_HALT,
   // disables receiving messages on the socket. use this for a
   // rudimentary form of flow control.
   LIBLINK_SIGNAL_STOP,
@@ -98,7 +98,7 @@ int liblink_sock_signal(
   liblink_sock_t *socket,
   // the signal to send. notice that the signal processing is
   // asynchronous and may take a while to complete. notice that after
-  // `LIBLINK_SIGNAL_QUIT` the only valid operation is
+  // `LIBLINK_SIGNAL_HALT` the only valid operation is
   // `liblink_sock_wait_term`.
   enum liblink_signal signal);
 

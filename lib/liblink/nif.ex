@@ -13,24 +13,24 @@
 # limitations under the License.
 
 defmodule Liblink.Nif do
+  import Liblink.Guards
+
+  @dialyzer [:unknown]
   @moduledoc false
 
-  @opaque socket :: binary
+  @opaque socket_t :: reference
 
-  defguardp is_message(iolist_or_binary)
-            when is_binary(iolist_or_binary) or is_list(iolist_or_binary)
+  @type socket_type :: :router | :dealer
 
-  defguardp is_socktype(x)
-            when x == :router or x == :dealer
+  @type signal_return :: :ok | :error | {:error, :badsignal} | {:error, :badargs}
 
-  defguardp is_endpoint(x)
-            when is_binary(x)
+  @type sendmsg_return :: :ok | :error | {:error, :ioerror} | {:error, :badargs}
 
-  defguardp is_server(pid_or_atom)
-            when is_pid(pid_or_atom) or is_atom(pid_or_atom)
+  @type state_return :: :error | {:error, :badargs} | :quitting | :running | :waiting
 
-  defguardp is_signal(signal)
-            when signal == :cont or signal == :stop
+  @type term_return :: :ok | :error
+
+  @type new_socket_return :: {:ok, socket_t} | :error | {:error, :badargs}
 
   @doc false
   @spec load :: :ok | {:error, {atom, charlist}}
@@ -42,29 +42,29 @@ defmodule Liblink.Nif do
   end
 
   @doc false
-  @spec new_socket(:router | :dealer, String.t(), String.t(), pid() | atom) ::
-          {:ok, socket} | {:error, :badargs} | :error
+  @spec new_socket(socket_type, String.t(), String.t(), pid()) :: new_socket_return
   def new_socket(socktype, ext_endpoint, int_endpoint, server)
-      when is_socktype(socktype) and is_endpoint(ext_endpoint) and is_endpoint(int_endpoint) and
-             is_server(server),
+      when is_socket_type(socktype) and is_binary(ext_endpoint) and is_binary(int_endpoint) and
+             is_pid(server),
       do: fail()
 
   @doc false
-  @spec send(socket, iolist | binary) :: :ok | :error | {:error, :ioerror} | {:error, :badargs}
-  def send(_socket, message) when is_message(message),
+  @spec sendmsg(socket_t, iodata) :: sendmsg_return
+  def sendmsg(_socket, message) when is_iodata(message),
     do: fail()
 
   @doc false
-  @spec signal(socket, :cont | :stop) :: :ok | :error | {:error, :badsignal} | {:error, :badargs}
+  @spec signal(socket_t, :cont | :stop) :: signal_return
   def signal(_socket, signal) when is_signal(signal), do: fail()
 
   @doc false
-  @spec state(socket) :: :error | {:error, :badargs} | :quitting | :running | :waiting
+  @spec state(socket_t) :: state_return
   def state(_socket), do: fail()
 
   @doc false
-  @spec term(socket) :: :ok | :error
+  @spec term(socket_t) :: term_return
   def term(_socket), do: fail()
 
-  defp fail(), do: raise("nif function")
+  @spec fail() :: any
+  defp fail(), do: Liblink.Hidden.fail("nif function")
 end
