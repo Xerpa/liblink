@@ -39,7 +39,15 @@ defmodule Liblink.Socket do
     unless String.starts_with?(endpoint, prefix_whitelist) do
       {:error, :bad_endpoint}
     else
-      Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
+      reply =
+        Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
+
+      with {:ok, device} <- reply do
+        Process.link(device.sendmsg_pid)
+        Process.link(device.recvmsg_pid)
+
+        {:ok, device}
+      end
     end
   end
 
