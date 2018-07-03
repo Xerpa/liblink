@@ -19,16 +19,18 @@ defmodule Liblink do
   alias Liblink.Socket.Monitor
 
   def start(_type, _args) do
-    :ok = Nif.load()
-
     children = [
       %{
         id: Monitor,
         start: {Monitor, :start_link, []},
-        restart: :permanent
+        restart: :permanent,
+        shutdown: 90_000
       }
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one)
+    case Nif.load() do
+      :ok -> Supervisor.start_link(children, strategy: :one_for_one)
+      error -> {:error, {:load_nif, error}}
+    end
   end
 end
