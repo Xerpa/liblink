@@ -21,12 +21,26 @@ defmodule Liblink.Socket do
 
   @dialyzer [:unknown]
 
-  @spec open(Nif.socket_type(), String.t()) :: {:ok, Device.t()} | {:error, term}
+  @spec open(Nif.socket_type(), String.t()) ::
+          {:ok, Device.t()} | {:error, term} | {:error, :bad_endpoint}
   def open(type, endpoint) do
     uniqid = to_string(:erlang.unique_integer())
     int_endpoint = "inproc://liblink-socket-device-" <> uniqid
 
-    Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
+    prefix_whitelist = [
+      "@tcp://",
+      "@ipc://",
+      "@inproc://",
+      ">tcp://",
+      ">ipc://",
+      ">inproc://"
+    ]
+
+    unless String.starts_with?(endpoint, prefix_whitelist) do
+      {:error, :bad_endpoint}
+    else
+      Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
+    end
   end
 
   @spec close(Device.t()) :: :ok

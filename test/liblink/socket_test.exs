@@ -33,6 +33,10 @@ defmodule Liblink.SocketTest do
     {:ok, [router: router, dealer: dealer]}
   end
 
+  test "endpoint validation" do
+    assert {:error, :bad_endpoint} == Socket.open(:router, "invalid-endpoint")
+  end
+
   test "using blocking api", %{router: router, dealer: dealer} do
     assert :ok == Socket.sendmsg(dealer, "ping")
     assert {:ok, [msgkey, "ping"]} = Socket.recvmsg(router)
