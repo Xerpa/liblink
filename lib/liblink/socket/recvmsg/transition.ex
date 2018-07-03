@@ -18,7 +18,7 @@ defmodule Liblink.Socket.Recvmsg.Transition do
 
   require Logger
 
-  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iolist -> term)
+  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iodata -> term)
 
   @spec init_to_recv(Device.t(), map) ::
           {:cont, :ok, {RecvState, %{device: Device.t(), mqueue: term}}}
@@ -74,7 +74,7 @@ defmodule Liblink.Socket.Recvmsg.Transition do
     end
   end
 
-  @spec consume_to_recv(iolist, map) :: {:cont, :ok, {RecvState, map}}
+  @spec consume_to_recv(iodata, map) :: {:cont, :ok, {RecvState, map}}
   def consume_to_recv(message, data) do
     _ = Logger.info("recvmsg-fsm: consume -> recv")
 

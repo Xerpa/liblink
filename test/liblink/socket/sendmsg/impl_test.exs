@@ -25,7 +25,7 @@ defmodule Liblink.Socket.Sendmsg.ImplTest do
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc:///liblink-nif-test-#{uniqid}",
+        "@inproc://liblink-nif-test-#{uniqid}",
         "inproc://liblink-nif-test-router-#{uniqid}",
         self()
       )
@@ -33,7 +33,7 @@ defmodule Liblink.Socket.Sendmsg.ImplTest do
     {:ok, dealer} =
       Nif.new_socket(
         :dealer,
-        ">inproc:///liblink-nif-test-#{uniqid}",
+        ">inproc://liblink-nif-test-#{uniqid}",
         "inproc://liblink-nif-test-dealer-#{uniqid}",
         self()
       )

@@ -106,7 +106,7 @@ defmodule Liblink.Socket.Recvmsg.Fsm do
 
   @callback halt_consumer(data_t) :: fsm_return
 
-  @callback on_liblink_message(iolist, data_t) :: fsm_return
+  @callback on_liblink_message(iodata, data_t) :: fsm_return
 
   @callback on_monitor_message({:DOWN, reference, :process, pid | {atom, atom}, atom}, data_t) ::
               fsm_return

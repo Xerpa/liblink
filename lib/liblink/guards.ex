@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Guards do
-  defguard is_iolist(term) when is_list(term) or is_binary(term)
+  defguard is_iodata(term) when is_list(term) or is_binary(term)
 
   defguard is_socket_type(term) when term == :router or term == :dealer
 

@@ -49,8 +49,8 @@ defmodule Liblink.Nif do
       do: fail()
 
   @doc false
-  @spec sendmsg(socket_t, iolist) :: sendmsg_return
-  def sendmsg(_socket, message) when is_iolist(message),
+  @spec sendmsg(socket_t, iodata) :: sendmsg_return
+  def sendmsg(_socket, message) when is_iodata(message),
     do: fail()
 
   @doc false

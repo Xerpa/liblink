@@ -26,7 +26,7 @@ defmodule Liblink.NifTest do
       {:ok, router} =
         Nif.new_socket(
           :router,
-          "@inproc:///liblink-nif-test-#{uniqid}",
+          "@inproc://liblink-nif-test-#{uniqid}",
           "inproc://liblink-nif-test-router-#{uniqid}",
           pid
         )
@@ -34,7 +34,7 @@ defmodule Liblink.NifTest do
       {:ok, dealer} =
         Nif.new_socket(
           :dealer,
-          ">inproc:///liblink-nif-test-#{uniqid}",
+          ">inproc://liblink-nif-test-#{uniqid}",
           "inproc://liblink-nif-test-dealer-#{uniqid}",
           pid
         )

@@ -65,7 +65,7 @@ defmodule Liblink.Socket.Recvmsg do
   end
 
   def poll(pid, timeout) do
-    GenServer.call(pid, {:poll, timeout, self()}, timeout)
+    GenServer.call(pid, {:poll, timeout}, timeout)
   end
 
   def recvmsg(pid, timeout) do
@@ -77,7 +77,7 @@ defmodule Liblink.Socket.Recvmsg do
   end
 
   @impl true
-  def handle_call(message, _from, state) do
+  def handle_call(message, {from, _}, state) do
     case message do
       :halt ->
         Impl.halt(:sync, state)
@@ -91,7 +91,7 @@ defmodule Liblink.Socket.Recvmsg do
       {:attach, device} ->
         Impl.attach(device, :sync, state)
 
-      {:poll, timeout, from} ->
+      {:poll, timeout} ->
         Impl.poll(timeout, from, :sync, state)
 
       :recvmsg ->

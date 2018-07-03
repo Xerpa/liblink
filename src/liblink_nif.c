@@ -46,13 +46,13 @@ int _liblink_erlnif_recvfn (zmsg_t *msg, void *args)
   unsigned char *buffdata;
   ErlNifEnv *env = NULL;
   ERL_NIF_TERM binary;
-  ERL_NIF_TERM iolist;
+  ERL_NIF_TERM iodata;
   ERL_NIF_TERM message;
 
   if (NULL == (env = enif_alloc_env()))
   { return(-1); }
 
-  iolist = enif_make_list(env, 0);
+  iodata = enif_make_list(env, 0);
   for (frame = zmsg_first(msg); frame != NULL; frame = zmsg_next(msg))
   {
     buffsize = zframe_size(frame);
@@ -60,9 +60,9 @@ int _liblink_erlnif_recvfn (zmsg_t *msg, void *args)
     { goto e_handler; }
     memcpy(buffdata, zframe_data(frame), buffsize);
 
-    iolist = enif_make_list_cell(env, binary, iolist);
+    iodata = enif_make_list_cell(env, binary, iodata);
   }
-  message = enif_make_tuple2(env, enif_make_atom(env, "liblink_message"), iolist);
+  message = enif_make_tuple2(env, enif_make_atom(env, "liblink_message"), iodata);
 
   if (0 == enif_send(env, &data->pid, env, message))
   { goto e_handler; }

@@ -28,16 +28,16 @@ defmodule Liblink.Socket.SendmsgTest do
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc:///liblink-socket-sendmsg-test-#{uniqid}",
-        "inproc:///liblink-socket-sendmsg-test-router-#{uniqid}",
+        "@inproc://liblink-socket-sendmsg-test-#{uniqid}",
+        "inproc://liblink-socket-sendmsg-test-router-#{uniqid}",
         self()
       )
 
     {:ok, dealer} =
       Nif.new_socket(
         :dealer,
-        ">inproc:///liblink-socket-sendmsg-test-#{uniqid}",
-        "inproc:///liblink-socket-sendmsg-test-dealer-#{uniqid}",
+        ">inproc://liblink-socket-sendmsg-test-#{uniqid}",
+        "inproc://liblink-socket-sendmsg-test-dealer-#{uniqid}",
         self()
       )
 

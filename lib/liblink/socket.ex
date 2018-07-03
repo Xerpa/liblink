@@ -37,19 +37,19 @@ defmodule Liblink.Socket do
     :ok
   end
 
-  @spec sendmsg(Device.t(), iolist, integer() | :infinity) ::
+  @spec sendmsg(Device.t(), iodata, integer() | :infinity) ::
           Nif.sendmsg_return() | {:error, :timeout}
   def sendmsg(device, message, timeout \\ 1_000) do
     Sendmsg.sendmsg(device.sendmsg_pid, message, timeout)
   end
 
-  @spec sendmsg_async(Device.t(), iolist, integer() | :infinity) :: :ok
+  @spec sendmsg_async(Device.t(), iodata, integer() | :infinity) :: :ok
   def sendmsg_async(device, message, timeout \\ :infinity) do
     Sendmsg.sendmsg_async(device.sendmsg_pid, message, timeout)
   end
 
   @spec recvmsg(Device.t(), integer() | :infinity) ::
-          {:error, :empty} | {:error, :timeout} | {:ok, iolist}
+          {:error, :empty} | {:error, :timeout} | {:ok, iodata}
   def recvmsg(device, timeout \\ 1_000) do
     case Recvmsg.recvmsg(device.recvmsg_pid, timeout) do
       {:error, :empty} ->

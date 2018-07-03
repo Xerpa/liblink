@@ -18,19 +18,19 @@ defmodule Liblink.Socket.Sendmsg.SendState do
   alias Liblink.Nif
 
   @impl true
-  def sendmsg(iolist, data) do
-    {:cont, Nif.sendmsg(data.device.socket, iolist), {__MODULE__, data}}
+  def sendmsg(iodata, data) do
+    {:cont, Nif.sendmsg(data.device.socket, iodata), {__MODULE__, data}}
   end
 
   @impl true
-  def sendmsg(iolist, deadline, data) do
+  def sendmsg(iodata, deadline, data) do
     timenow = :erlang.monotonic_time()
 
     reply =
       if timenow > deadline do
         {:error, :timeout}
       else
-        Nif.sendmsg(data.device.socket, iolist)
+        Nif.sendmsg(data.device.socket, iodata)
       end
 
     {:cont, reply, {__MODULE__, data}}

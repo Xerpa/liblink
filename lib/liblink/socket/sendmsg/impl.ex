@@ -30,7 +30,8 @@ defmodule Liblink.Socket.Sendmsg.Impl do
     {:ok, %{fsm: Fsm.new()}}
   end
 
-  @spec halt(call_mode, state_t) :: {:reply, :ok, state_t()}
+  @spec halt(call_mode, state_t) ::
+          {:stop, :normal, term, state_t()} | {:stop, :normal, state_t()}
   def halt(mode, state) do
     {fsm, data} = state.fsm
 
@@ -45,14 +46,14 @@ defmodule Liblink.Socket.Sendmsg.Impl do
     call_fsm(fn -> fsm.attach(device, data) end, mode, state)
   end
 
-  @spec sendmsg(iolist, call_mode, state_t) :: {:reply, Nif.sendmsg_return(), state_t()}
+  @spec sendmsg(iodata, call_mode, state_t) :: {:reply, Nif.sendmsg_return(), state_t()}
   def sendmsg(message, mode, state) do
     {fsm, data} = state.fsm
 
     call_fsm(fn -> fsm.sendmsg(message, data) end, mode, state)
   end
 
-  @spec sendmsg(iolist, integer(), call_mode, state_t) ::
+  @spec sendmsg(iodata, integer(), call_mode, state_t) ::
           {:reply, Nif.sendmsg_return() | {:error, :timeout}, state_t()}
   def sendmsg(message, deadline, mode, state) do
     {fsm, data} = state.fsm

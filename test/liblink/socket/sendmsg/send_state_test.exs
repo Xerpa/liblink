@@ -28,7 +28,7 @@ defmodule Liblink.Socket.Sendmsg.SendStateTest do
     {:ok, router} =
       Nif.new_socket(
         :router,
-        "@inproc:///liblink-nif-test-#{uniqid}",
+        "@inproc://liblink-nif-test-#{uniqid}",
         "inproc://liblink-nif-test-router-#{uniqid}",
         self()
       )

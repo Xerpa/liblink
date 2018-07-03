@@ -26,7 +26,7 @@ defmodule Liblink.Socket.Recvmsg.Impl do
 
   @type call_mode :: :sync | :async
 
-  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iolist -> term)
+  @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iodata -> term)
 
   @spec init() :: {:ok, __MODULE__.state_t()}
   def init() do
@@ -49,7 +49,7 @@ defmodule Liblink.Socket.Recvmsg.Impl do
   end
 
   @spec recvmsg(:sync, state_t) ::
-          {:reply, {:ok, iolist}, state_t}
+          {:reply, {:ok, iodata}, state_t}
           | {:reply, {:error, :timeout}, state_t}
           | {:reply, {:error, :empty}, state_t}
           | {:reply, {:ok, :badstate}, state_t}
@@ -65,17 +65,13 @@ defmodule Liblink.Socket.Recvmsg.Impl do
   def poll(timeout, pid, :sync, state) do
     {fsm, data} = state.fsm
 
-    case call_fsm(fn -> fsm.poll(pid, data) end, :sync, state) do
-      reply = {:reply, {:ok, tag}, _data} when is_reference(tag) ->
-        _ =
-          unless timeout == :infinity do
-            Process.send_after(self(), {:halt, :poll, tag}, timeout)
-          end
+    with reply = {:reply, {:ok, tag}, _data} when is_reference(tag) <-
+           call_fsm(fn -> fsm.poll(pid, data) end, :sync, state) do
+      unless timeout == :infinity do
+        Process.send_after(self(), {:halt, :poll, tag}, timeout)
+      end
 
-        reply
-
-      reply ->
-        reply
+      reply
     end
   end
 
@@ -109,7 +105,7 @@ defmodule Liblink.Socket.Recvmsg.Impl do
     call_fsm(fn -> fsm.halt_consumer(data) end, mode, state)
   end
 
-  @spec on_liblink_message(iolist, :async, state_t) :: {:noreply, state_t}
+  @spec on_liblink_message(iodata, :async, state_t) :: {:noreply, state_t}
   def on_liblink_message(message, :async, state) do
     {fsm, data} = state.fsm
 
