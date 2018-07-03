@@ -46,4 +46,29 @@ defmodule Liblink.Random do
 
     "ipc://" <> tmpfile
   end
+
+  @spec random_tcp_endpoint(
+          String.t(),
+          :seq | :rnd | Range.t() | {:rnd, Range.t()} | {:seq, Range.t()}
+        ) :: String.t()
+  def random_tcp_endpoint(host, port_spec \\ :rnd) do
+    case port_spec do
+      range = %Range{} ->
+        random_tcp_endpoint(host, {:rnd, range})
+
+      :seq ->
+        "tcp://" <> host <> ":*"
+
+      :rnd ->
+        "tcp://" <> host <> ":!"
+
+      {:rnd, range = %Range{}} ->
+        ports = "[#{range.first}-#{range.last}]"
+        "tcp://" <> host <> ":!" <> ports
+
+      {:seq, range = %Range{}} ->
+        ports = "[#{range.first}-#{range.last}]"
+        "tcp://" <> host <> ":*" <> ports
+    end
+  end
 end

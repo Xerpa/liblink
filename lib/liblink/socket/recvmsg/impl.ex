@@ -67,9 +67,10 @@ defmodule Liblink.Socket.Recvmsg.Impl do
 
     with reply = {:reply, {:ok, tag}, _data} when is_reference(tag) <-
            call_fsm(fn -> fsm.poll(pid, data) end, :sync, state) do
-      unless timeout == :infinity do
-        Process.send_after(self(), {:halt, :poll, tag}, timeout)
-      end
+      _ =
+        unless timeout == :infinity do
+          Process.send_after(self(), {:halt, :poll, tag}, timeout)
+        end
 
       reply
     end

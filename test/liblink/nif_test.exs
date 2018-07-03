@@ -173,31 +173,39 @@ defmodule Liblink.NifTest do
       assert 13723 == port
     end
 
-    @tag endpoint: "@tcp://127.0.0.1:*"
-    test "dynamic tcp endpoints", %{socket: socket} do
+    @tag endpoint: "@" <> random_tcp_endpoint("127.0.0.1", :seq)
+    test "dynamic tcp endpoints | seq scan", %{socket: socket} do
       port = Nif.bind_port(socket)
       assert is_integer(port)
       assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
       :gen_tcp.close(socket)
     end
 
-    @tag endpoint: "@tcp://127.0.0.1:*[1000-2000]"
-    test "range tcp endpoints [first free ports]", %{socket: socket} do
+    @tag endpoint: "@" <> random_tcp_endpoint("127.0.0.1", :rnd)
+    test "dynamic tcp endpoints | rnd scan", %{socket: socket} do
+      port = Nif.bind_port(socket)
+      assert is_integer(port)
+      assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
+      :gen_tcp.close(socket)
+    end
+
+    @tag endpoint: "@" <> random_tcp_endpoint("127.0.0.1", {:seq, 1000..2000})
+    test "range tcp endpoints | rnd range scan", %{socket: socket} do
       # XXX: (0-1024) is privileged and usually regular users can't
       # bind sockets in this range. this test also checks that zmq can
       # handle that kind of errors as well
       port = Nif.bind_port(socket)
       assert is_integer(port)
-      assert port >= 1000 and port <= 4000
+      assert port >= 1000 and port <= 2000
       assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
       :gen_tcp.close(socket)
     end
 
-    @tag endpoint: "@tcp://127.0.0.1:![1000-2000]"
-    test "range tcp endpoints [random free ports]", %{socket: socket} do
+    @tag endpoint: "@" <> random_tcp_endpoint("127.0.0.1", {:seq, 1000..2000})
+    test "range tcp endpoints | seq range scan", %{socket: socket} do
       port = Nif.bind_port(socket)
       assert is_integer(port)
-      assert port >= 1000 and port <= 4000
+      assert port >= 1000 and port <= 2000
       assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
       :gen_tcp.close(socket)
     end
@@ -212,7 +220,7 @@ defmodule Liblink.NifTest do
       assert is_nil(Nif.bind_port(socket))
     end
 
-    @tag endpoint: "@tcp://127.0.0.1:*"
+    @tag endpoint: "@" <> random_tcp_endpoint("127.0.0.1")
     test "binding to a taken port", %{socket: socket} do
       port = Nif.bind_port(socket)
       endpoint = "@tcp://127.0.0.1:#{port}"

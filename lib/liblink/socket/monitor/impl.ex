@@ -20,9 +20,9 @@ defmodule Liblink.Socket.Monitor.Impl do
 
   require Logger
 
-  @opaque state_t :: %{procs: map, socks: map}
+  @type state_t :: %{procs: map, socks: map}
 
-  @spec init() :: {:ok, state_t}
+  @spec init() :: {:ok, state_t()}
   def init() do
     {:ok, %{procs: Map.new(), socks: Map.new()}}
   end
@@ -74,7 +74,7 @@ defmodule Liblink.Socket.Monitor.Impl do
   @spec stop(state_t) :: state_t
   def stop(state) do
     state.socks
-    |> Enum.map(fn {socket, procs} ->
+    |> Enum.each(fn {socket, procs} ->
       procs
       |> Map.values()
       |> Enum.each(&Liblink.Socket.Shared.halt(&1, 100))

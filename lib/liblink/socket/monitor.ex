@@ -38,13 +38,14 @@ defmodule Liblink.Socket.Monitor do
 
   @impl true
   def terminate(reason, state) do
-    Logger.debug("socket.monitor is terminated", metadata: [data: [reason: reason]])
+    _ = Logger.debug("socket.monitor is terminated", metadata: [data: [reason: reason]])
 
     if Enum.empty?(state.procs) do
       :ok
     else
-      Logger.info("closing all remaining sockets")
-      Impl.stop(state)
+      _ = Logger.info("closing all remaining sockets")
+      _ = Impl.stop(state)
+      :ok
     end
   end
 
@@ -75,7 +76,7 @@ defmodule Liblink.Socket.Monitor do
         Impl.down(state, tag)
 
       {:EXIT, _from, reason} ->
-        Logger.debug("socket.monitor is exiting", metadata: [data: [reason: reason]])
+        _ = Logger.debug("socket.monitor is exiting", metadata: [data: [reason: reason]])
 
         state = Impl.stop(state)
         {:stop, reason, state}

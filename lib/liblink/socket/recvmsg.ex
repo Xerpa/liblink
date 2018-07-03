@@ -37,7 +37,7 @@ defmodule Liblink.Socket.Recvmsg do
   @doc """
   halt the recvmsg thread
   """
-  @spec halt(pid, integer | :infinity) :: :ok
+  @spec halt(pid, non_neg_integer() | :infinity) :: :ok
   def halt(pid, timeout \\ 5_000), do: Shared.halt(pid, timeout)
 
   @doc """
