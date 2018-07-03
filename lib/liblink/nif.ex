@@ -39,6 +39,11 @@ defmodule Liblink.Nif do
     |> Path.join()
     |> String.to_charlist()
     |> :erlang.load_nif(0)
+    |> case do
+      :ok -> :ok
+      {:error, {:reload, _}} -> :ok
+      error -> error
+    end
   end
 
   @doc false

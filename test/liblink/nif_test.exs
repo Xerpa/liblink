@@ -3,10 +3,11 @@ defmodule Liblink.NifTest do
 
   alias Liblink.Nif
 
+  import Liblink.Random
+
   describe "router / dealer" do
     setup env do
       this = self()
-      uniqid = :erlang.unique_integer()
 
       {pid, ref} =
         if env[:ephemeral] do
@@ -23,19 +24,21 @@ defmodule Liblink.NifTest do
           {this, nil}
         end
 
+      endpoint = random_inproc_endpoint()
+
       {:ok, router} =
         Nif.new_socket(
           :router,
-          "@inproc://liblink-nif-test-#{uniqid}",
-          "inproc://liblink-nif-test-router-#{uniqid}",
+          "@" <> endpoint,
+          random_inproc_endpoint(),
           pid
         )
 
       {:ok, dealer} =
         Nif.new_socket(
           :dealer,
-          ">inproc://liblink-nif-test-#{uniqid}",
-          "inproc://liblink-nif-test-dealer-#{uniqid}",
+          ">" <> endpoint,
+          random_inproc_endpoint(),
           pid
         )
 
@@ -154,7 +157,7 @@ defmodule Liblink.NifTest do
 
   describe "bind_port" do
     setup env do
-      {:ok, socket} = Nif.new_socket(:router, env.endpoint, "inproc://liblink-nif-test", self())
+      {:ok, socket} = Nif.new_socket(:router, env.endpoint, random_inproc_endpoint(), self())
 
       on_exit(fn ->
         Nif.term(socket)
@@ -199,12 +202,12 @@ defmodule Liblink.NifTest do
       :gen_tcp.close(socket)
     end
 
-    @tag endpoint: "@inproc://liblink-nif-test-xxx"
+    @tag endpoint: "@" <> random_inproc_endpoint()
     test "inproc endpoints", %{socket: socket} do
       assert is_nil(Nif.bind_port(socket))
     end
 
-    @tag endpoint: "@ipc:///tmp/liblink-nif-test"
+    @tag endpoint: "@" <> random_ipc_endpoint()
     test "ipc endpoints", %{socket: socket} do
       assert is_nil(Nif.bind_port(socket))
     end
@@ -213,7 +216,7 @@ defmodule Liblink.NifTest do
     test "binding to a taken port", %{socket: socket} do
       port = Nif.bind_port(socket)
       endpoint = "@tcp://127.0.0.1:#{port}"
-      assert :error == Nif.new_socket(:router, endpoint, "inproc://liblink-nif-test-xxx", self())
+      assert :error == Nif.new_socket(:router, endpoint, random_inproc_endpoint(), self())
     end
   end
 end

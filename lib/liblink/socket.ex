@@ -19,14 +19,49 @@ defmodule Liblink.Socket do
   alias Liblink.Socket.Sendmsg
   alias Liblink.Socket.Recvmsg
 
+  import Liblink.Random
+
   @dialyzer [:unknown]
 
-  @spec open(Nif.socket_type(), String.t()) :: {:ok, Device.t()} | {:error, term}
+  @spec open(Nif.socket_type(), String.t()) ::
+          {:ok, Device.t()} | {:error, term} | {:error, :bad_endpoint}
   def open(type, endpoint) do
-    uniqid = to_string(:erlang.unique_integer())
-    int_endpoint = "inproc://liblink-socket-device-" <> uniqid
+    prefix_whitelist = [
+      "@tcp://",
+      "@ipc://",
+      "@inproc://",
+      ">tcp://",
+      ">ipc://",
+      ">inproc://"
+    ]
 
-    Monitor.new_device(fn recvmsg -> Nif.new_socket(type, endpoint, int_endpoint, recvmsg) end)
+    unless String.starts_with?(endpoint, prefix_whitelist) do
+      {:error, :bad_endpoint}
+    else
+      reply =
+        Monitor.new_device(fn recvmsg ->
+          Nif.new_socket(type, endpoint, random_inproc_endpoint(), recvmsg)
+        end)
+
+      with {:ok, device} <- reply do
+        Process.link(device.sendmsg_pid)
+        Process.link(device.recvmsg_pid)
+
+        {:ok, device}
+      end
+    end
+  end
+
+  @spec open(Nif.socket_type(), String.t(), (Device.t() -> term)) ::
+          {:ok, term} | {:error, term} | {:error, :bad_endpoint}
+  def open(type, endpoint, handler) do
+    with {:ok, socket} <- open(type, endpoint) do
+      try do
+        {:ok, handler.(socket)}
+      after
+        close(socket)
+      end
+    end
   end
 
   @spec close(Device.t()) :: :ok

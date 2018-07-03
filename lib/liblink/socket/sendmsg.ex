@@ -15,6 +15,7 @@
 defmodule Liblink.Socket.Sendmsg do
   use GenServer
 
+  alias Liblink.Socket.Shared
   alias Liblink.Socket.Sendmsg.Impl
 
   require Logger
@@ -37,21 +38,7 @@ defmodule Liblink.Socket.Sendmsg do
   @doc """
   halt the sendmsg thread.
   """
-  def halt(pid, timeout \\ 5_000) do
-    tag = Process.monitor(pid)
-    GenServer.cast(pid, :halt)
-
-    receive do
-      {:DOWN, ^tag, :process, _pid, _reason} ->
-        Process.demonitor(tag)
-        :ok
-    after
-      timeout ->
-        Process.demonitor(tag)
-        Process.exit(pid, :kill)
-        :ok
-    end
-  end
+  def halt(pid, timeout \\ 5_000), do: Shared.halt(pid, timeout)
 
   @doc false
   def attach(pid, device, timeout \\ 5_000) do

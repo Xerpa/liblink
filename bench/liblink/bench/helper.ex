@@ -15,6 +15,8 @@
 defmodule Liblink.Bench.Helper do
   alias Liblink.Nif
 
+  import Liblink.Random
+
   def otp_client() do
     %{
       acquire_fn: fn -> nil end,
@@ -35,7 +37,7 @@ defmodule Liblink.Bench.Helper do
   def nif_client(endpoint) do
     %{
       acquire_fn: fn ->
-        {:ok, nif} = Nif.new_socket(:router, "@" <> endpoint, "inproc://nif-client", self())
+        {:ok, nif} = Nif.new_socket(:router, "@" <> endpoint, random_inproc_endpoint(), self())
 
         nif
       end,
@@ -57,7 +59,7 @@ defmodule Liblink.Bench.Helper do
   def nif_server(endpoint) do
     %{
       acquire_fn: fn ->
-        {:ok, nif} = Nif.new_socket(:dealer, ">" <> endpoint, "inproc://nif-server", self())
+        {:ok, nif} = Nif.new_socket(:dealer, ">" <> endpoint, random_inproc_endpoint(), self())
 
         nif
       end,

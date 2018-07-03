@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink do
-  use Application
+defmodule Liblink.Socket.Shared do
+  @spec halt(pid, integer | :infinity) :: :ok
+  def halt(pid, timeout) do
+    tag = Process.monitor(pid)
+    GenServer.cast(pid, :halt)
 
-  alias Liblink.Nif
-  alias Liblink.Socket.Monitor
-
-  def start(_type, _args) do
-    children = [
-      %{
-        id: Monitor,
-        start: {Monitor, :start_link, []},
-        restart: :permanent,
-        shutdown: 90_000
-      }
-    ]
-
-    case Nif.load() do
-      :ok -> Supervisor.start_link(children, strategy: :one_for_one)
-      error -> {:error, {:load_nif, error}}
+    receive do
+      {:DOWN, ^tag, :process, _pid, _reason} ->
+        Process.demonitor(tag)
+        :ok
+    after
+      timeout ->
+        Process.demonitor(tag)
+        Process.exit(pid, :kill)
+        :ok
     end
   end
 end

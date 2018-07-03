@@ -17,20 +17,26 @@ defmodule Liblink.SocketTest do
 
   alias Liblink.Socket
 
+  import Liblink.Random
+
   @moduletag capture_log: true
 
   setup do
-    uniqid = to_string(:erlang.unique_integer())
-    endpoint = "inproc://liblink-socket-test-" <> uniqid
+    endpoint = random_inproc_endpoint()
+
     {:ok, router} = Socket.open(:router, "@" <> endpoint)
     {:ok, dealer} = Socket.open(:dealer, ">" <> endpoint)
 
     on_exit(fn ->
-      Socket.close(router)
       Socket.close(dealer)
+      Socket.close(router)
     end)
 
     {:ok, [router: router, dealer: dealer]}
+  end
+
+  test "endpoint validation" do
+    assert {:error, :bad_endpoint} == Socket.open(:router, "invalid-endpoint")
   end
 
   test "using blocking api", %{router: router, dealer: dealer} do

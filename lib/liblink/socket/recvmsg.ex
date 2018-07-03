@@ -15,6 +15,7 @@
 defmodule Liblink.Socket.Recvmsg do
   use GenServer
 
+  alias Liblink.Socket.Shared
   alias Liblink.Socket.Recvmsg.Impl
 
   require Logger
@@ -36,21 +37,8 @@ defmodule Liblink.Socket.Recvmsg do
   @doc """
   halt the recvmsg thread
   """
-  def halt(pid, timeout \\ 5_000) do
-    tag = Process.monitor(pid)
-    GenServer.cast(pid, :halt)
-
-    receive do
-      {:DOWN, ^tag, :process, _pid, _reason} ->
-        Process.demonitor(tag)
-        :ok
-    after
-      timeout ->
-        Process.demonitor(tag)
-        Process.exit(pid, :kill)
-        :ok
-    end
-  end
+  @spec halt(pid, integer | :infinity) :: :ok
+  def halt(pid, timeout \\ 5_000), do: Shared.halt(pid, timeout)
 
   @doc """
   halt the current consumer
