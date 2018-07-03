@@ -25,7 +25,7 @@ defmodule Liblink.Socket.Sendmsg.Impl do
 
   @type call_mode :: :sync | :async
 
-  @spec init() :: {:ok, __MODULE__.state_t()}
+  @spec init() :: {:ok, state_t}
   def init() do
     {:ok, %{fsm: Fsm.new()}}
   end

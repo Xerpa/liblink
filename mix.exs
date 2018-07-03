@@ -56,7 +56,7 @@ defmodule Liblink.MixProject do
           |> Enum.filter(&String.contains?(&1, "Elixir.Liblink."))
           |> Enum.reject(&String.contains?(&1, "Elixir.Liblink.Hidden.beam")),
         remove_defaults: [:unknown],
-        flags: [:underspecs, :unmatched_returns]
+        flags: [:unmatched_returns]
       ]
     ]
   end

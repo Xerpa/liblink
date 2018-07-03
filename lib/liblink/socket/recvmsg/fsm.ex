@@ -87,7 +87,7 @@ defmodule Liblink.Socket.Recvmsg.Fsm do
     end
   end
 
-  @spec new() :: {InitState, __MODULE__.data_t()}
+  @spec new() :: {InitState, data_t}
   def new() do
     {InitState, %{}}
   end
