@@ -285,9 +285,28 @@ ERL_NIF_TERM _liblink_erlnif_state (ErlNifEnv *env, int argc, const ERL_NIF_TERM
   }
 }
 
+static
+ERL_NIF_TERM _liblink_erlnif_bind_port (ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  int port;
+  liblink_erlnif_t *data;
+  ErlNifResourceType *type = (ErlNifResourceType *) enif_priv_data(env);
+
+  if (argc != 1
+      || 0 == enif_get_resource(env, argv[0], type, (void **) &data))
+  { return(enif_make_tuple2(env, enif_make_atom(env, "error"), enif_make_atom(env, "badargs"))); }
+
+
+  if (liblink_sock_bind_port(data->socket, &port) == 0)
+  { return(enif_make_int(env, port)); }
+  else
+  { return(enif_make_atom(env, "nil")); }
+}
+
 ErlNifFunc liblink_erlnif[] =
 {
   {"new_socket", 4, _liblink_erlnif_new_socket, 0},
+  {"bind_port", 1, _liblink_erlnif_bind_port, 0},
   {"sendmsg", 2, _liblink_erlnif_sendmsg, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"term", 1, _liblink_erlnif_term, ERL_NIF_DIRTY_JOB_IO_BOUND},
   {"signal", 2, _liblink_erlnif_signal, ERL_NIF_DIRTY_JOB_IO_BOUND},

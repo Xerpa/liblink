@@ -19,6 +19,7 @@ struct _liblink_sock_t {
   volatile enum liblink_state state;
   pthread_t ioloop;
   pthread_mutex_t mutex;
+  int bind_port;
   zloop_t *reactor;
   zsock_t *sock;
   zsock_t *push;
@@ -158,6 +159,7 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
     return(NULL);
   }
 
+  socket->bind_port = -1;
   socket->state = LIBLINK_STATE_RUNNING;
   socket->recvfn = recvfn;
   socket->recvfn_args = recvfn_args;
@@ -167,11 +169,11 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
   switch (socktype)
   {
   case LIBLINK_SOCK_ROUTER:
-    socket->sock = zsock_new_router(ext_endpoint);
+    socket->sock = zsock_new(ZMQ_ROUTER);
     break;
     ;;
   case LIBLINK_SOCK_DEALER:
-    socket->sock = zsock_new_dealer(ext_endpoint);
+    socket->sock = zsock_new(ZMQ_DEALER);
     break;
     ;;
   default:
@@ -179,6 +181,15 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
     break;
   }
   if (socket->reactor == NULL || socket->sock == NULL || socket->push == NULL || socket->pull == NULL)
+  { goto e_handler; }
+
+  if (0 == strncmp(ext_endpoint, "@tcp://", 7))
+  {
+    socket->bind_port = zsock_bind(socket->sock, ext_endpoint + 1);
+    if (socket->bind_port == -1)
+    { goto e_handler; }
+  }
+  else if (0 != zsock_attach(socket->sock, ext_endpoint, false))
   { goto e_handler; }
 
   if (0 != (pthread_create(&(socket->ioloop), NULL, *_liblink_ioloop, (void *) socket)))
@@ -189,6 +200,14 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
 e_handler:
   liblink_sock_destroy(socket);
   return(NULL);
+}
+
+int liblink_sock_bind_port (liblink_sock_t *socket, int *port)
+{
+  if (socket->bind_port != -1)
+  { *port = socket->bind_port; }
+
+  return(socket->bind_port == -1 ? -1 : 0);
 }
 
 int liblink_sock_signal (liblink_sock_t *socket, enum liblink_signal signal)

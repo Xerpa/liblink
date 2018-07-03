@@ -84,6 +84,12 @@ liblink_sock_t *liblink_new_socket (
   void *recvfn_args);       // additional args for the `recvfn`
                             // functions. might be null;
 
+// if you created a `@tcp://` socket, returns the port the socket was
+// bound to. useful if the port is dinamically allocated.
+//
+// return: 0 on success
+int liblink_sock_bind_port (liblink_sock_t *socket, int *port);
+
 // sends a message through the socket. it takes ownership of `msg` and
 // free the memory after sending it successfully.
 //

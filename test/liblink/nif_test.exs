@@ -151,4 +151,69 @@ defmodule Liblink.NifTest do
       assert :waiting == Nif.state(state.dealer)
     end
   end
+
+  describe "bind_port" do
+    setup env do
+      {:ok, socket} = Nif.new_socket(:router, env.endpoint, "inproc://liblink-nif-test", self())
+
+      on_exit(fn ->
+        Nif.term(socket)
+      end)
+
+      {:ok, [socket: socket]}
+    end
+
+    # XXX: this test will fail if any service is bound to 13723
+    @tag endpoint: "@tcp://127.0.0.1:13723"
+    test "fixed tcp endpoints", %{socket: socket} do
+      port = Nif.bind_port(socket)
+      assert 13723 == port
+    end
+
+    @tag endpoint: "@tcp://127.0.0.1:*"
+    test "dynamic tcp endpoints", %{socket: socket} do
+      port = Nif.bind_port(socket)
+      assert is_integer(port)
+      assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
+      :gen_tcp.close(socket)
+    end
+
+    @tag endpoint: "@tcp://127.0.0.1:*[1000-2000]"
+    test "range tcp endpoints [first free ports]", %{socket: socket} do
+      # XXX: (0-1024) is privileged and usually regular users can't
+      # bind sockets in this range. this test also checks that zmq can
+      # handle that kind of errors as well
+      port = Nif.bind_port(socket)
+      assert is_integer(port)
+      assert port >= 1000 and port <= 4000
+      assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
+      :gen_tcp.close(socket)
+    end
+
+    @tag endpoint: "@tcp://127.0.0.1:![1000-2000]"
+    test "range tcp endpoints [random free ports]", %{socket: socket} do
+      port = Nif.bind_port(socket)
+      assert is_integer(port)
+      assert port >= 1000 and port <= 4000
+      assert {:ok, socket} = :gen_tcp.connect('127.0.0.1', port, [])
+      :gen_tcp.close(socket)
+    end
+
+    @tag endpoint: "@inproc://liblink-nif-test-xxx"
+    test "inproc endpoints", %{socket: socket} do
+      assert is_nil(Nif.bind_port(socket))
+    end
+
+    @tag endpoint: "@ipc:///tmp/liblink-nif-test"
+    test "ipc endpoints", %{socket: socket} do
+      assert is_nil(Nif.bind_port(socket))
+    end
+
+    @tag endpoint: "@tcp://127.0.0.1:*"
+    test "binding to a taken port", %{socket: socket} do
+      port = Nif.bind_port(socket)
+      endpoint = "@tcp://127.0.0.1:#{port}"
+      assert :error == Nif.new_socket(:router, endpoint, "inproc://liblink-nif-test-xxx", self())
+    end
+  end
 end
