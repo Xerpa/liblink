@@ -22,7 +22,7 @@ defmodule Liblink.Socket.Monitor.Impl do
 
   @type state_t :: %{procs: map, socks: map}
 
-  @spec init() :: {:ok, state_t()}
+  @spec init() :: {:ok, state_t}
   def init() do
     {:ok, %{procs: Map.new(), socks: Map.new()}}
   end

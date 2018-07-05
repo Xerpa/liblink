@@ -28,7 +28,7 @@ defmodule Liblink.Socket.Recvmsg.Impl do
 
   @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iodata -> term)
 
-  @spec init() :: {:ok, __MODULE__.state_t()}
+  @spec init() :: {:ok, state_t}
   def init() do
     {:ok, %{fsm: Fsm.new()}}
   end

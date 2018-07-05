@@ -56,7 +56,7 @@ defmodule Liblink.MixProject do
           |> Enum.filter(&String.contains?(&1, "Elixir.Liblink."))
           |> Enum.reject(&String.contains?(&1, "Elixir.Liblink.Hidden.beam")),
         remove_defaults: [:unknown],
-        flags: [:underspecs, :unmatched_returns]
+        flags: [:unmatched_returns]
       ]
     ]
   end
@@ -67,6 +67,8 @@ defmodule Liblink.MixProject do
 
   defp deps do
     [
+      {:jason, "~> 1.0"},
+      {:tesla, "~> 1.0.0"},
       {:dialyxir, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:benchee, "~> 0.11", only: :bench, runtime: false}
