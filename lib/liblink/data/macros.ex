@@ -12,9 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-use Mix.Config
+defmodule Liblink.Data.Macros do
+  defmacro def_bang(fn_name, arity) when is_atom(fn_name) do
+    fn_bang =
+      fn_name
+      |> Atom.to_string()
+      |> Kernel.<>("!")
+      |> String.to_atom()
 
-mix_env = Mix.env()
+    fn_argv =
+      0..arity
+      |> Enum.drop(1)
+      |> Enum.map(fn i ->
+        var = String.to_atom("arg_" <> to_string(i))
+        Macro.var(var, __MODULE__)
+      end)
 
-config :tesla,
-  adapter: Module.concat([System.get_env("liblink_tesla_adapter") || "Tesla.Adapter.Httpc"])
+    quote do
+      def unquote(fn_bang)(unquote_splicing(fn_argv)) do
+        {:ok, ans} = unquote(fn_name)(unquote_splicing(fn_argv))
+        ans
+      end
+    end
+  end
+end

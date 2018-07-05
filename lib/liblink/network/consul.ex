@@ -12,9 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-use Mix.Config
+defmodule Liblink.Network.Consul do
+  alias Liblink.Data.Consul.Config
 
-mix_env = Mix.env()
-
-config :tesla,
-  adapter: Module.concat([System.get_env("liblink_tesla_adapter") || "Tesla.Adapter.Httpc"])
+  @spec client(Config.t()) :: Tesla.Client.t()
+  def client(config = %Config{}) do
+    Tesla.build_client([
+      {Tesla.Middleware.BaseUrl, config.endpoint},
+      {Tesla.Middleware.Timeout, timeout: config.timeout},
+      {Tesla.Middleware.Headers, [{"x-consul-token", config.token}]},
+      {Tesla.Middleware.JSON, []}
+    ])
+  end
+end
