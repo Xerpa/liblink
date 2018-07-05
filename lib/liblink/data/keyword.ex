@@ -70,9 +70,90 @@ defmodule Liblink.Data.Keyword do
           {:ok, binary | nil} | fetch_error
   def_fetch(:binary, :is_binary)
 
+  @spec fetch_function(Keyword.t(), Keyword.key()) :: {:ok, function} | fetch_error
+  @spec fetch_function(Keyword.t(), Keyword.key(), function) :: {:ok, function} | fetch_error
+  @spec maybe_fetch_function(Keyword.t(), Keyword.key(), function | nil) ::
+          {:ok, function} | fetch_error
+  def_fetch(:function, :is_function)
+
   @spec fetch_integer(Keyword.t(), Keyword.key()) :: {:ok, integer} | fetch_error
   @spec fetch_integer(Keyword.t(), Keyword.key(), integer) :: {:ok, integer} | fetch_error
   @spec maybe_fetch_integer(Keyword.t(), Keyword.key(), integer | nil) ::
           {:ok, integer | nil} | fetch_error
   def_fetch(:integer, :is_integer)
+
+  @spec fetch_struct(Keyword.t(), Keyword.key(), atom | [atom]) :: {:ok, struct} | fetch_error
+  def fetch_struct(keyword, key, struct_or_struct_list)
+      when is_list(keyword) and is_atom(key) and
+             (is_atom(struct_or_struct_list) or is_list(struct_or_struct_list)) do
+    case fetch_map(keyword, key) do
+      {:ok, value = %{__struct__: struct}} ->
+        valid? =
+          (is_atom(struct_or_struct_list) and struct == struct_or_struct_list) or
+            (is_list(struct_or_struct_list) and Enum.member?(struct_or_struct_list, struct))
+
+        if valid? do
+          {:ok, value}
+        else
+          {:error, {key, {:value, value}}}
+        end
+
+      {:ok, value} ->
+        {:error, {key, {:value, value}}}
+
+      result ->
+        result
+    end
+  end
+
+  @spec fetch_struct(Keyword.t(), Keyword.key(), atom | [atom], struct()) ::
+          {:ok, struct} | fetch_error
+  def fetch_struct(keyword, key, struct, default = %{__struct__: struct})
+      when is_list(keyword) and is_atom(key) and is_atom(struct) do
+    with {:error, {_key, :not_found}} <- fetch_struct(keyword, key, struct) do
+      {:ok, default}
+    end
+  end
+
+  def fetch_struct(keyword, key, struct_list, default = %{__struct__: struct})
+      when is_list(keyword) and is_atom(key) and is_list(struct_list) do
+    true = Enum.member?(struct_list, struct)
+
+    with {:error, {_key, :not_found}} <- fetch_struct(keyword, key, struct_list) do
+      {:ok, default}
+    end
+  end
+
+  @spec maybe_fetch_struct(Keyword.t(), Keyword.key(), atom | [atom], nil | struct) ::
+          {:ok, struct | nil} | fetch_error
+  def maybe_fetch_struct(_keyword, _key, _struct, default \\ nil)
+
+  def maybe_fetch_struct(keyword, key, struct_or_struct_list, nil)
+      when is_list(keyword) and is_atom(key) do
+    case fetch_struct(keyword, key, struct_or_struct_list) do
+      {:error, {_key, :not_found}} -> {:ok, nil}
+      {:error, {_key, {:value, nil}}} -> {:ok, nil}
+      result -> result
+    end
+  end
+
+  def maybe_fetch_struct(keyword, key, struct, default = %{__struct__: struct})
+      when is_list(keyword) and is_atom(key) and is_atom(struct) do
+    case fetch_struct(keyword, key, struct) do
+      {:error, {_key, :not_found}} -> {:ok, default}
+      {:error, {_key, {:value, nil}}} -> {:ok, nil}
+      result -> result
+    end
+  end
+
+  def maybe_fetch_struct(keyword, key, struct_list, default = %{__struct__: struct})
+      when is_list(keyword) and is_atom(key) and is_list(struct_list) do
+    true = Enum.member?(struct_list, struct)
+
+    case fetch_struct(keyword, key, struct_list) do
+      {:error, {_key, :not_found}} -> {:ok, default}
+      {:error, {_key, {:value, nil}}} -> {:ok, nil}
+      result -> result
+    end
+  end
 end
