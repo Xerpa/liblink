@@ -133,7 +133,6 @@ void *_liblink_ioloop (void *args)
 {
   liblink_sock_t *socket = (liblink_sock_t *) args;
 
-  zloop_reader(socket->reactor, socket->sock, _liblink_ioloop_recv, args);
   zloop_reader(socket->reactor, socket->pull, _liblink_ioloop_pull, args);
   zloop_start(socket->reactor);
 
@@ -160,7 +159,7 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
   }
 
   socket->bind_port = -1;
-  socket->state = LIBLINK_STATE_RUNNING;
+  socket->state = LIBLINK_STATE_WAITING;
   socket->recvfn = recvfn;
   socket->recvfn_args = recvfn_args;
   socket->push = zsock_new_push(int_endpoint);
@@ -212,20 +211,27 @@ int liblink_sock_bind_port (liblink_sock_t *socket, int *port)
 
 int liblink_sock_signal (liblink_sock_t *socket, enum liblink_signal signal)
 {
-  zmsg_t *msg = zmsg_new_signal((byte) signal);
+  int rc = -1;
+  zmsg_t *msg;
 
-  if (msg != NULL && socket->state != LIBLINK_STATE_HALTING)
-  { return(zmsg_send(&msg, socket->push)); }
-  else
+  if (0 == pthread_mutex_lock(&socket->mutex))
   {
-    if (msg != NULL)
-    { zmsg_destroy(&msg); }
+    msg = zmsg_new_signal((byte) signal);
 
-    if (signal == LIBLINK_SIGNAL_HALT)
-    { return(0); }
+    if (NULL != msg && LIBLINK_STATE_HALTING != socket->state)
+    { rc = zmsg_send(&msg, socket->push); }
     else
-    { return(-1); }
+    {
+      rc = (signal == LIBLINK_SIGNAL_HALT ? 0 : -1);
+
+      if (msg != NULL)
+      { zmsg_destroy(&msg); }
+    }
+
+    pthread_mutex_unlock(&socket->mutex);
   }
+
+  return(rc);
 }
 
 enum liblink_state liblink_sock_state (liblink_sock_t *socket)
@@ -233,12 +239,16 @@ enum liblink_state liblink_sock_state (liblink_sock_t *socket)
 
 int liblink_sock_write (liblink_sock_t *socket, zmsg_t **msg)
 {
-  if (socket->state != LIBLINK_STATE_HALTING)
-  { return(zmsg_send(msg, socket->push)); }
-  else
+  int rc = -1;
+
+  if (0 == pthread_mutex_lock(&socket->mutex))
   {
-    zmsg_destroy(msg);
-    return(-1);
+    if (socket->state != LIBLINK_STATE_HALTING)
+    { rc = zmsg_send(msg, socket->push); }
+    else
+    { zmsg_destroy(msg); }
+
+    pthread_mutex_unlock(&socket->mutex);
   }
 }
 

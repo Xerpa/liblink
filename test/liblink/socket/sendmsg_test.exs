@@ -36,6 +36,8 @@ defmodule Liblink.Socket.SendmsgTest do
         self()
       )
 
+    :ok = Nif.signal(router, :cont)
+
     {:ok, dealer} =
       Nif.new_socket(
         :dealer,
@@ -43,6 +45,8 @@ defmodule Liblink.Socket.SendmsgTest do
         random_inproc_endpoint(),
         self()
       )
+
+    :ok = Nif.signal(dealer, :cont)
 
     device = %Device{sendmsg_pid: pid, socket: router}
 

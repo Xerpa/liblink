@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Recvmsg.Transition do
+  alias Liblink.Nif
   alias Liblink.Socket.Recvmsg.RecvState
   alias Liblink.Socket.Recvmsg.SubsState
 
@@ -27,6 +28,11 @@ defmodule Liblink.Socket.Recvmsg.Transition do
       data
       |> Map.put(:device, device)
       |> Map.put(:mqueue, :queue.new())
+
+    # XXX: somes tests do not define a proper socket
+    if is_reference(device.socket) do
+      :ok = Nif.signal(device.socket, :cont)
+    end
 
     {:cont, :ok, {RecvState, data}}
   end
