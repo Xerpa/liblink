@@ -97,14 +97,14 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
     test "missing service", %{router: router} do
       {meta, payload} = echo_request(router, %{}, :payload, service_id: "missing")
 
-      assert {:error, {:not_found, :service}} == payload
+      assert {:error, :not_found} == payload
       assert %{status: :failure} = meta
     end
 
     test "missing function", %{router: router} do
       {meta, payload} = echo_request(router, %{}, :payload, function: :missing)
 
-      assert {:error, {:not_found, :service}} == payload
+      assert {:error, :not_found} == payload
       assert %{status: :failure} = meta
     end
 
