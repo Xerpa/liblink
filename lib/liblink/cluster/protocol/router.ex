@@ -130,6 +130,7 @@ defmodule Liblink.Cluster.Protocol.Router do
         end
       rescue
         except ->
+          _ = Logger.warn("error executing router", metadata: [{:except, except} | metadata])
           stacktrace = System.stacktrace()
           {:failure, %{}, {:error, {:except, except, stacktrace}}}
       end
