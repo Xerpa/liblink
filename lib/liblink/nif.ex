@@ -55,24 +55,24 @@ defmodule Liblink.Nif do
 
   @doc false
   @spec bind_port(socket_t) :: integer() | nil | {:error, :badargs}
-  def bind_port(_socket), do: fail()
+  def bind_port(socket) when is_reference(socket), do: fail()
 
   @doc false
   @spec sendmsg(socket_t, iodata) :: sendmsg_return
-  def sendmsg(_socket, message) when is_iodata(message),
+  def sendmsg(socket, message) when is_reference(socket) and is_iodata(message),
     do: fail()
 
   @doc false
   @spec signal(socket_t, :cont | :stop) :: signal_return
-  def signal(_socket, signal) when is_signal(signal), do: fail()
+  def signal(socket, signal) when is_reference(socket) and is_signal(signal), do: fail()
 
   @doc false
   @spec state(socket_t) :: state_return
-  def state(_socket), do: fail()
+  def state(socket) when is_reference(socket), do: fail()
 
   @doc false
   @spec term(socket_t) :: term_return
-  def term(_socket), do: fail()
+  def term(socket) when is_reference(socket), do: fail()
 
   @spec fail() :: any
   defp fail(), do: Liblink.Hidden.fail("nif function")

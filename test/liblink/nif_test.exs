@@ -34,6 +34,8 @@ defmodule Liblink.NifTest do
           pid
         )
 
+      :ok = Nif.signal(router, :cont)
+
       {:ok, dealer} =
         Nif.new_socket(
           :dealer,
@@ -41,6 +43,8 @@ defmodule Liblink.NifTest do
           random_inproc_endpoint(),
           pid
         )
+
+      :ok = Nif.signal(dealer, :cont)
 
       on_exit(fn ->
         Nif.term(router)

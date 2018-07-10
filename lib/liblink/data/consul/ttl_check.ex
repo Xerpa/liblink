@@ -29,10 +29,10 @@ defmodule Liblink.Data.Consul.TTLCheck do
 
   defstruct [:id, :name, :status, :ttl, :deregister_critical_service_after]
 
-  @spec new() :: t
+  @spec new!() :: t
   def_bang(:new, 0)
 
-  @spec new([option]) :: t
+  @spec new!([option]) :: t
   def_bang(:new, 1)
 
   @spec new([option]) :: {:ok, t} | Keyword.fetch_error()
