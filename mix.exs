@@ -69,6 +69,7 @@ defmodule Liblink.MixProject do
     [
       {:jason, "~> 1.0"},
       {:tesla, "~> 1.0.0"},
+      {:stream_data, "~> 0.1", only: :test},
       {:dialyxir, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:benchee, "~> 0.11", only: :bench, runtime: false}
