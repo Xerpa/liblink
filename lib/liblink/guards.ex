@@ -18,4 +18,7 @@ defmodule Liblink.Guards do
   defguard is_socket_type(term) when term == :router or term == :dealer
 
   defguard is_signal(term) when term == :stop or term == :cont
+
+  # XXX: term >= 0 for testing purposes
+  defguard is_timeout(term) when term == :infinity or (is_integer(term) and term >= 0)
 end

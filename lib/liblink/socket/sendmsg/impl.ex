@@ -46,13 +46,6 @@ defmodule Liblink.Socket.Sendmsg.Impl do
     call_fsm(fn -> fsm.attach(device, data) end, mode, state)
   end
 
-  @spec sendmsg(iodata, call_mode, state_t) :: {:reply, Nif.sendmsg_return(), state_t()}
-  def sendmsg(message, mode, state) do
-    {fsm, data} = state.fsm
-
-    call_fsm(fn -> fsm.sendmsg(message, data) end, mode, state)
-  end
-
   @spec sendmsg(iodata, integer(), call_mode, state_t) ::
           {:reply, Nif.sendmsg_return() | {:error, :timeout}, state_t()}
   def sendmsg(message, deadline, mode, state) do

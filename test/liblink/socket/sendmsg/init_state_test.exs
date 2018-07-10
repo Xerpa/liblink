@@ -34,8 +34,7 @@ defmodule Liblink.Socket.Sendmsg.InitStateTest do
   end
 
   test "can't sendmsg", %{data: data} do
-    assert {:cont, {:error, :badstate}, {InitState, _}} = InitState.sendmsg([], data)
-    assert {:cont, {:error, :badstate}, {InitState, _}} = InitState.sendmsg([], 0, data)
+    assert {:cont, {:error, :badstate}, {InitState, _}} = InitState.sendmsg([], :infinity, data)
   end
 
   test "can halt", %{data: data} do

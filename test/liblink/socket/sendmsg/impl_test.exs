@@ -16,6 +16,7 @@ defmodule Liblink.Socket.Sendmsg.ImplTest do
   use ExUnit.Case, async: true
 
   alias Liblink.Nif
+  alias Liblink.Timeout
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg.Impl
 
@@ -58,32 +59,32 @@ defmodule Liblink.Socket.Sendmsg.ImplTest do
   end
 
   test "send a sync message without deadline", %{state: state} do
-    {:reply, :ok, _state} = Impl.sendmsg(["foobar"], :sync, state)
+    {:reply, :ok, _state} = Impl.sendmsg(["foobar"], :infinity, :sync, state)
   end
 
   test "send a sync message with deadline", %{state: state} do
-    deadline = :erlang.monotonic_time() + :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(1, :second)
     {:reply, :ok, _state} = Impl.sendmsg(["foobar"], deadline, :sync, state)
   end
 
   test "send a message with an experide deadline", %{state: state} do
-    deadline = :erlang.monotonic_time() - :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(-1, :second)
     {:reply, {:error, :timeout}, _stat} = Impl.sendmsg(["foobar"], deadline, :sync, state)
   end
 
   test "send an async message without deadline", %{state: state} do
-    assert {:noreply, _state} = Impl.sendmsg(["foobar"], :async, state)
+    assert {:noreply, _state} = Impl.sendmsg(["foobar"], :infinity, :async, state)
     assert_receive {:liblink_message, ["foobar", _]}
   end
 
   test "send an async message with deadline", %{state: state} do
-    deadline = :erlang.monotonic_time() + :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(1, :second)
     assert {:noreply, _state} = Impl.sendmsg(["foobar"], deadline, :async, state)
     assert_receive {:liblink_message, ["foobar", _]}
   end
 
   test "send an async message with an expired deadline", %{state: state} do
-    deadline = :erlang.monotonic_time() - :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(-1, :second)
     assert {:noreply, _state} = Impl.sendmsg(["foobar"], deadline, :async, state)
     refute_receive _
   end

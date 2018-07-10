@@ -41,11 +41,6 @@ defmodule Liblink.Socket.Sendmsg.Fsm do
       end
 
       @impl true
-      def sendmsg(_iodata, data) do
-        {:cont, {:error, :badstate}, {__MODULE__, data}}
-      end
-
-      @impl true
       def sendmsg(_iodata, _deadline, data) do
         {:cont, {:error, :badstate}, {__MODULE__, data}}
       end
@@ -63,7 +58,5 @@ defmodule Liblink.Socket.Sendmsg.Fsm do
 
   @callback attach(Device.t(), data_t) :: fsm_return
 
-  @callback sendmsg(iodata, data_t) :: fsm_return
-
-  @callback sendmsg(iodata, integer(), data_t) :: fsm_return
+  @callback sendmsg(iodata, Timeout.deadline_t(), data_t) :: fsm_return
 end
