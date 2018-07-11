@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Data.CodecTest do
+defmodule Liblink.Data.MessageTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Liblink.Data.Codec
+  alias Liblink.Data.Message
 
   property "encode . decode = id" do
-    check all payload <- term() do
-      assert {:ok, payload} == Codec.decode(Codec.encode(payload))
+    check all payload <- term(),
+              metadata <- map_of(one_of([binary(), atom(:alphanumeric)]), term()) do
+      message = Message.new(payload, metadata)
+      assert {:ok, message} == Message.decode(Message.encode(message))
     end
   end
 
   test "decode on invalid data" do
-    assert :error == Codec.decode("bad_data")
+    assert :error == Message.decode("bad_data")
   end
 end

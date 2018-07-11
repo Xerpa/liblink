@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Router do
-  alias Liblink.Data.Codec
+  alias Liblink.Data.Message
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Announce
@@ -54,88 +54,84 @@ defmodule Liblink.Cluster.Protocol.Router do
         cluster: cluster,
         services: services
       }) do
-    {status, rsp_metadata, payload} =
-      with {_, {:ok, {meta, payload}}} when is_map(meta) <- {:codec, Codec.decode(message)},
-           {_, {:ok, service_id}} <- {:service, Map.fetch(meta, :service_id)},
+    {status, reply} =
+      with {_, {:ok, message}} <- {:codec, Message.decode(message)},
+           {_, {:ok, {service_id, _}}} <- {:service, Message.meta_fetch(message, :service_id)},
            {_, {:ok, service}} <- {:service, Map.fetch(services, service_id)} do
-        call_service(cluster, service, meta, payload)
+        call_service(cluster, service, message)
       else
         {:codec, _term} ->
-          {:failure, %{}, {:error, :io_error}}
+          {:failure, Message.new({:error, :io_error})}
 
         {:service, _term} ->
-          {:failure, %{}, {:error, :not_found}}
+          {:failure, Message.new({:error, :not_found})}
       end
 
     metadata =
-      rsp_metadata
+      reply.metadata
       |> Map.new(fn {k, v} -> {String.downcase(to_string(k)), v} end)
       |> Map.put(:date, DateTime.utc_now())
       |> Map.put(:status, status)
 
-    payload = Codec.encode(metadata, payload)
+    payload = Message.encode(%{reply | metadata: metadata})
 
     [routekey | [requestid | payload]]
   end
 
-  @spec call_service(Cluster.t(), Servicet.t(), map, {atom, term}) ::
-          {:success, map, term}
-          | {:failure, map, {:error, :not_found}}
-          | {:failure, map, {:error, :bad_service}}
-          | {:failure, map, {:error, {:except, term, term}}}
-          | {:failure, map, term}
-  defp call_service(
-         cluster = %Cluster{},
-         service = %Service{},
-         req_meta = %{},
-         req_payload = {fname, payload}
-       ) do
+  @spec call_service(Cluster.t(), Servicet.t(), Message.t()) :: {:success | :failure, Message.t()}
+  defp call_service(cluster = %Cluster{}, service = %Service{}, request = %Message{}) do
     exports = service.exports
 
     metadata = [
       cluster: cluster.id,
       service: service.id,
-      request: {req_meta, req_payload}
+      request: request
     ]
 
-    if exports.restriction.(fname) do
+    target =
+      case Message.meta_fetch(request, :service_id) do
+        {:ok, {_, target}} when is_atom(target) -> target
+        _ -> nil
+      end
+
+    if target != nil and exports.restriction.(target) do
       try do
-        case apply(exports.module, fname, [req_meta, payload]) do
-          {:ok, rsp_meta, rsp_payload} when is_map(rsp_meta) ->
+        case apply(exports.module, target, [request]) do
+          {:ok, reply = %Message{}} ->
             _ =
               Logger.info(
                 "processing router request: success",
-                metadata: [{:response, {rsp_meta, rsp_payload}} | metadata]
+                metadata: [{:response, reply} | metadata]
               )
 
-            {:success, rsp_meta, rsp_payload}
+            {:success, reply}
 
-          {:error, rsp_meta, rsp_payload} when is_map(rsp_meta) ->
+          {:error, reply = %Message{}} ->
             _ =
               Logger.info(
                 "processing router request: failure",
-                metadata: [{:response, {%{}, rsp_payload}} | metadata]
+                metadata: [{:response, reply} | metadata]
               )
 
-            {:failure, rsp_meta, rsp_payload}
+            {:failure, reply}
 
-          rsp_payload ->
+          _term ->
             _ =
               Logger.warn(
-                "ignoring response from misbehaving router. response should be {:ok, map, term} | {:error, map, term}",
-                metadata: [{:response, {%{}, rsp_payload}} | metadata]
+                "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, Message.t}",
+                metadata: metadata
               )
 
-            {:failure, %{}, {:error, :bad_service}}
+            {:failure, Message.new({:error, :bad_service})}
         end
       rescue
         except ->
           _ = Logger.warn("error executing router", metadata: [{:except, except} | metadata])
           stacktrace = System.stacktrace()
-          {:failure, %{}, {:error, {:except, except, stacktrace}}}
+          {:failure, Message.new({:error, {:except, except, stacktrace}})}
       end
     else
-      {:failure, %{}, {:error, :not_found}}
+      {:failure, Message.new({:error, :not_found})}
     end
   end
 end

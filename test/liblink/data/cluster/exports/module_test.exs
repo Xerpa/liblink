@@ -54,5 +54,5 @@ defmodule Liblink.Data.Cluster.Exports.ModuleTest do
   end
 
   # XXX: for testing
-  def foo(_meta, _payload), do: nil
+  def foo(_payload), do: nil
 end
