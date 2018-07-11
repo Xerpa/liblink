@@ -13,8 +13,12 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Shared do
-  @spec halt(pid, integer | :infinity) :: :ok
-  def halt(pid, timeout) do
+  alias Liblink.Timeout
+
+  import Liblink.Guards
+
+  @spec halt(pid, Timeout.timeout_t()) :: :ok
+  def halt(pid, timeout) when is_pid(pid) and is_timeout(timeout) do
     tag = Process.monitor(pid)
     GenServer.cast(pid, :halt)
 

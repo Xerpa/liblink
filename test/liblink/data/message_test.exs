@@ -12,13 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Guards do
-  defguard is_iodata(term) when is_list(term) or is_binary(term)
+defmodule Liblink.Data.MessageTest do
+  use ExUnit.Case, async: true
+  use ExUnitProperties
 
-  defguard is_socket_type(term) when term == :router or term == :dealer
+  alias Liblink.Data.Message
 
-  defguard is_signal(term) when term == :stop or term == :cont
+  property "encode . decode = id" do
+    check all payload <- term(),
+              metadata <- map_of(one_of([binary(), atom(:alphanumeric)]), term()) do
+      message = Message.new(payload, metadata)
+      assert {:ok, message} == Message.decode(Message.encode(message))
+    end
+  end
 
-  # XXX: term >= 0 for testing purposes
-  defguard is_timeout(term) when term == :infinity or (is_integer(term) and term >= 0)
+  test "decode on invalid data" do
+    assert :error == Message.decode("bad_data")
+  end
 end

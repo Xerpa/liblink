@@ -30,11 +30,12 @@ defmodule Liblink.Data.Cluster.Exports.Module do
     with {:ok, module} <- Keyword.fetch_atom(options, :module),
          {:ok, only} <- Keyword.fetch_list(options, :only, []),
          {:ok, except} <- Keyword.fetch_list(options, :except, []) do
+      Code.ensure_loaded?(module)
       only_restriction = build_restriction(only, true)
       except_restriction = build_restriction(except, false)
 
       restriction = fn x ->
-        only_restriction.(x) and not except_restriction.(x) and function_exported?(module, x, 2)
+        only_restriction.(x) and not except_restriction.(x) and function_exported?(module, x, 1)
       end
 
       {:ok, %__MODULE__{module: module, restriction: restriction}}

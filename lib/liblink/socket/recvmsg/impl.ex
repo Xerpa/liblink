@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Recvmsg.Impl do
+  alias Liblink.Timeout
   alias Liblink.Socket.Device
   alias Liblink.Socket.Recvmsg.Fsm
 
@@ -59,7 +60,7 @@ defmodule Liblink.Socket.Recvmsg.Impl do
     call_fsm(fn -> fsm.recvmsg(data) end, :sync, state)
   end
 
-  @spec poll(integer() | :infinity, pid, :sync, state_t) ::
+  @spec poll(Timeout.timeout_t(), pid, :sync, state_t) ::
           {:reply, {:ok, reference}, state_t}
           | {:reply, {:error, :badstate}, state_t}
   def poll(timeout, pid, :sync, state) do

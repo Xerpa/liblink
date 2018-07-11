@@ -15,12 +15,13 @@
 defmodule Liblink.Cluster.Protocol.RouterTest do
   use ExUnit.Case, async: true
 
-  alias Liblink.Data.Codec
+  alias Liblink.Data.Message
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Exports
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.Protocol.Router
+  alias Test.Liblink.TestService
 
   @moduletag capture_log: true
 
@@ -30,7 +31,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
         Service.new!(
           id: "foo",
           protocol: :request_response,
-          exports: Exports.new!(:module, module: __MODULE__)
+          exports: Exports.new!(:module, module: TestService)
         )
 
       cluster = Cluster.new!(id: "liblink", announce: Announce.new!(services: [service, service]))
@@ -42,7 +43,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       service =
         Service.new!(
           id: "foo",
-          exports: Exports.new!(:module, module: __MODULE__),
+          exports: Exports.new!(:module, module: TestService),
           protocol: :request_response
         )
 
@@ -57,11 +58,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       service =
         Service.new!(
           id: "liblink",
-          exports:
-            Exports.new!(
-              :module,
-              module: __MODULE__
-            ),
+          exports: Exports.new!(:module, module: TestService),
           protocol: :request_response
         )
 
@@ -76,80 +73,71 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
 
     test "response includes date/status header", %{router: router} do
       now = DateTime.utc_now()
-      {meta, _payload} = echo_request(router, %{}, :payload)
+      reply = ping_request(router)
 
-      assert {:ok, :success} = Map.fetch(meta, :status)
-      assert {:ok, date} = Map.fetch(meta, :date)
+      assert {:ok, :success} = Message.meta_fetch(reply, :status)
+      assert {:ok, date} = Message.meta_fetch(reply, :date)
       assert 1 >= DateTime.diff(now, date, :seconds)
     end
 
     test "application metadata", %{router: router} do
-      {meta, payload} = echo_request(router, %{foobar: true}, :payload)
-
-      assert :payload == payload
+      reply_with = {:ok, Message.new(nil, %{foobar: :term})}
+      reply = echo_request(router, {:echo, reply_with})
 
       assert %{
                :status => :success,
-               "foobar" => true
-             } = meta
+               "foobar" => :term
+             } = reply.metadata
     end
 
     test "missing service", %{router: router} do
-      {meta, payload} = echo_request(router, %{}, :payload, service_id: "missing")
+      reply = request(Message.new(nil, %{service_id: {"missing", :echo}}), router)
 
-      assert {:error, :not_found} == payload
-      assert %{status: :failure} = meta
+      assert {:error, :not_found} == reply.payload
+      assert %{status: :failure} = reply.metadata
     end
 
     test "missing function", %{router: router} do
-      {meta, payload} = echo_request(router, %{}, :payload, function: :missing)
+      reply = request(Message.new(nil, %{service_id: {"liblink", :missing}}), router)
 
-      assert {:error, :not_found} == payload
-      assert %{status: :failure} = meta
-    end
-
-    test "invalid arguments", %{router: router} do
-      {meta, payload} = echo_request(router, :not_a_map, :payload)
-
-      assert {:error, {:except, %FunctionClauseError{}, _stacktrace}} = payload
-      assert %{status: :failure} = meta
+      assert {:error, :not_found} == reply.payload
+      assert %{status: :failure} = reply.metadata
     end
 
     test "service returning error", %{router: router} do
-      {meta, payload} = echo_request(router, %{}, {:error, :payload}, return: :error)
+      reply_with = {:error, Message.new(:payload)}
+      reply = echo_request(router, {:echo, reply_with})
 
-      assert {:error, :payload} == payload
-      assert %{status: :failure} = meta
+      assert :payload == reply.payload
+      assert %{status: :failure} = reply.metadata
     end
 
     test "service misbehaving", %{router: router} do
-      {meta, payload} = echo_request(router, %{}, :payload, return: :bad_return)
+      reply_with = :bad_return
+      reply = echo_request(router, {:echo, reply_with})
 
-      assert {:error, :bad_service} == payload
-      assert %{status: :failure} = meta
+      assert {:error, :bad_service} == reply.payload
+      assert %{status: :failure} = reply.metadata
     end
   end
 
-  defp echo_request(router, request_meta, request_payload, opts \\ []) do
-    function = Keyword.get(opts, :function, :echo)
-    meta = %{service_id: Keyword.get(opts, :service_id, "liblink")}
-    return = Keyword.get(opts, :return, :ok)
+  defp request(request, router) do
+    ["peer" | ["msgid" | reply]] =
+      Router.dispatch(["peer" | ["msgid" | Message.encode(request)]], router)
 
-    [peer | [msgid | reply]] =
-      Router.dispatch(
-        [
-          "peer"
-          | ["msgid" | Codec.encode(meta, {function, {return, request_meta, request_payload}})]
-        ],
-        router
-      )
-
-    assert "peer" == peer
-    assert "msgid" == msgid
-    Codec.decode!(reply)
+    Message.decode!(reply)
   end
 
-  def echo(_req_meta, {atom, meta, payload}) when is_atom(atom) and is_map(meta) do
-    {atom, meta, payload}
+  defp echo_request(router, payload) do
+    payload
+    |> Message.new()
+    |> Message.meta_put_new(:service_id, {"liblink", :echo})
+    |> request(router)
+  end
+
+  defp ping_request(router) do
+    Message.new(:ping)
+    |> Message.meta_put_new(:service_id, {"liblink", :ping})
+    |> request(router)
   end
 end

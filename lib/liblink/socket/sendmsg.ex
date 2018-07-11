@@ -15,10 +15,13 @@
 defmodule Liblink.Socket.Sendmsg do
   use GenServer
 
+  alias Liblink.Timeout
   alias Liblink.Socket.Shared
   alias Liblink.Socket.Sendmsg.Impl
 
   require Logger
+
+  import Liblink.Guards
 
   @dialyzer [:unknown]
 
@@ -58,15 +61,16 @@ defmodule Liblink.Socket.Sendmsg do
   documentation for more information about this.
   """
   def sendmsg(pid, message, :infinity) do
-    GenServer.call(pid, {:sendmsg, message}, :infinity)
+    GenServer.call(pid, {:sendmsg, message, :infinity}, :infinity)
   end
 
-  def sendmsg(pid, message, timeout_in_ms) when is_integer(timeout_in_ms) do
-    timeout = :erlang.convert_time_unit(timeout_in_ms, :millisecond, :native)
-    deadline = :erlang.monotonic_time() + timeout
+  def sendmsg(pid, message, timeout_in_ms) when is_timeout(timeout_in_ms) do
+    deadline = Timeout.deadline(timeout_in_ms, :millisecond)
+
+    wait_timeout = Timeout.timeout_mul(timeout_in_ms, 1.2)
 
     try do
-      GenServer.call(pid, {:sendmsg, message, deadline}, timeout_in_ms + 100)
+      GenServer.call(pid, {:sendmsg, message, deadline}, wait_timeout)
     catch
       :exit, {:timeout, {GenServer, :call, _}} ->
         {:error, :timeout}
@@ -78,12 +82,11 @@ defmodule Liblink.Socket.Sendmsg do
   message delivery. if you need confirmation use `sendmsg/3`.
   """
   def sendmsg_async(pid, message, :infinity) do
-    GenServer.cast(pid, {:sendmsg, message})
+    GenServer.cast(pid, {:sendmsg, message, :infinity})
   end
 
-  def sendmsg_async(pid, message, timeout_in_ms) when is_integer(timeout_in_ms) do
-    timeout = :erlang.convert_time_unit(timeout_in_ms, :millisecond, :native)
-    deadline = :erlang.monotonic_time() + timeout
+  def sendmsg_async(pid, message, timeout_in_ms) when is_timeout(timeout_in_ms) do
+    deadline = Timeout.deadline(timeout_in_ms, :millisecond)
 
     GenServer.cast(pid, {:sendmsg, message, deadline})
   end
@@ -96,9 +99,6 @@ defmodule Liblink.Socket.Sendmsg do
 
       {:attach, device} ->
         Impl.attach(device, :sync, state)
-
-      {:sendmsg, message} ->
-        Impl.sendmsg(message, :sync, state)
 
       {:sendmsg, message, deadline} ->
         Impl.sendmsg(message, deadline, :sync, state)
@@ -119,9 +119,6 @@ defmodule Liblink.Socket.Sendmsg do
     case message do
       :halt ->
         Impl.halt(:async, state)
-
-      {:sendmsg, message} ->
-        Impl.sendmsg(message, :async, state)
 
       {:sendmsg, message, deadline} ->
         Impl.sendmsg(message, deadline, :async, state)

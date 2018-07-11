@@ -24,6 +24,8 @@ defmodule Liblink.Socket.Recvmsg do
 
   @opaque state_t :: map
 
+  @type consumer_t :: Impl.consumer_t()
+
   @spec start() :: {:ok, pid}
   def start() do
     GenServer.start(__MODULE__, [])
@@ -37,17 +39,17 @@ defmodule Liblink.Socket.Recvmsg do
   @doc """
   halt the recvmsg thread
   """
-  @spec halt(pid, non_neg_integer() | :infinity) :: :ok
+  @spec halt(pid, Timeout.timeout_t()) :: :ok
   def halt(pid, timeout \\ 5_000), do: Shared.halt(pid, timeout)
 
   @doc """
   halt the current consumer
   """
+  @spec halt_consumer(pid, Timeout.timeout_t()) :: :ok
   def halt_consumer(pid, timeout \\ 5_000) do
     GenServer.call(pid, {:halt, :consumer}, timeout)
   end
 
-  @doc false
   def attach(pid, device, timeout \\ 5_000) do
     GenServer.call(pid, {:attach, device}, timeout)
   end

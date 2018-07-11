@@ -125,7 +125,7 @@ defmodule Liblink.Socket.SendmsgTest do
     end
 
     test "timeout", %{sendmsg: pid} do
-      assert {:error, :timeout} == Sendmsg.sendmsg(pid, "foobar", -1)
+      assert {:error, :timeout} == Sendmsg.sendmsg(pid, "foobar", 0)
     end
   end
 end

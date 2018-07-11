@@ -19,9 +19,8 @@ defmodule Liblink.Data.CodecTest do
   alias Liblink.Data.Codec
 
   property "encode . decode = id" do
-    check all meta <- map_of(one_of([binary(), atom(:alphanumeric)]), term()),
-              payload <- term() do
-      assert {:ok, {meta, payload}} == Codec.decode(Codec.encode(meta, payload))
+    check all payload <- term() do
+      assert {:ok, payload} == Codec.decode(Codec.encode(payload))
     end
   end
 

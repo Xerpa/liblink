@@ -19,11 +19,12 @@ defmodule Liblink.Data.Codec do
 
   @v0 <<0>>
 
+  @spec decode(term) :: {:ok, term} | :error
   def decode(message) do
     case message do
-      [@v0, meta, payload] ->
+      [@v0, payload] ->
         try do
-          {:ok, {:erlang.binary_to_term(meta, [:safe]), :erlang.binary_to_term(payload, [:safe])}}
+          {:ok, :erlang.binary_to_term(payload, [:safe])}
         rescue
           ArgumentError -> :error
         end
@@ -33,11 +34,8 @@ defmodule Liblink.Data.Codec do
     end
   end
 
-  def encode(meta, payload) do
-    [
-      @v0,
-      :erlang.term_to_binary(meta, compressed: 6),
-      :erlang.term_to_binary(payload, compressed: 6)
-    ]
+  @spec encode(term) :: [binary]
+  def(encode(term)) do
+    [@v0, :erlang.term_to_binary(term, compressed: 6)]
   end
 end

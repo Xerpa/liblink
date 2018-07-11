@@ -16,6 +16,7 @@ defmodule Liblink.Socket.Sendmsg.SendStateTest do
   use ExUnit.Case, async: true
 
   alias Liblink.Nif
+  alias Liblink.Timeout
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg.Fsm
   alias Liblink.Socket.Sendmsg.InitState
@@ -54,16 +55,16 @@ defmodule Liblink.Socket.Sendmsg.SendStateTest do
   end
 
   test "sendmsg without deadline", %{data: data} do
-    assert {:cont, :ok, {SendState, _}} = SendState.sendmsg(["foobar"], data)
+    assert {:cont, :ok, {SendState, _}} = SendState.sendmsg(["foobar"], :infinity, data)
   end
 
   test "sendmsg with valid deadline", %{data: data} do
-    deadline = :erlang.monotonic_time() + :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(1, :second)
     assert {:cont, :ok, {SendState, _}} = SendState.sendmsg(["foobar"], deadline, data)
   end
 
   test "sendmsg with expired deadline", %{data: data} do
-    deadline = :erlang.monotonic_time() - :erlang.convert_time_unit(1, :second, :native)
+    deadline = Timeout.deadline(-1, :second)
 
     assert {:cont, {:error, :timeout}, {SendState, _}} =
              SendState.sendmsg(["foobar"], deadline, data)
