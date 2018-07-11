@@ -75,8 +75,8 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       now = DateTime.utc_now()
       reply = ping_request(router)
 
-      assert {:ok, :success} = Message.meta_fetch(reply, :status)
-      assert {:ok, date} = Message.meta_fetch(reply, :date)
+      assert {:ok, :success} = Message.meta_fetch(reply, "ll-status")
+      assert {:ok, date} = Message.meta_fetch(reply, "ll-timestamp")
       assert 1 >= DateTime.diff(now, date, :seconds)
     end
 
@@ -85,23 +85,23 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       reply = echo_request(router, {:echo, reply_with})
 
       assert %{
-               :status => :success,
+               "ll-status" => :success,
                "foobar" => :term
              } = reply.metadata
     end
 
     test "missing service", %{router: router} do
-      reply = request(Message.new(nil, %{service_id: {"missing", :echo}}), router)
+      reply = request(Message.new(nil, %{"ll-service-id" => {"missing", :echo}}), router)
 
       assert {:error, :not_found} == reply.payload
-      assert %{status: :failure} = reply.metadata
+      assert %{"ll-status" => :failure} = reply.metadata
     end
 
     test "missing function", %{router: router} do
-      reply = request(Message.new(nil, %{service_id: {"liblink", :missing}}), router)
+      reply = request(Message.new(nil, %{"ll-service-id" => {"liblink", :missing}}), router)
 
       assert {:error, :not_found} == reply.payload
-      assert %{status: :failure} = reply.metadata
+      assert %{"ll-status" => :failure} = reply.metadata
     end
 
     test "service returning error", %{router: router} do
@@ -109,7 +109,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       reply = echo_request(router, {:echo, reply_with})
 
       assert :payload == reply.payload
-      assert %{status: :failure} = reply.metadata
+      assert %{"ll-status" => :failure} = reply.metadata
     end
 
     test "service misbehaving", %{router: router} do
@@ -117,7 +117,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       reply = echo_request(router, {:echo, reply_with})
 
       assert {:error, :bad_service} == reply.payload
-      assert %{status: :failure} = reply.metadata
+      assert %{"ll-status" => :failure} = reply.metadata
     end
   end
 
@@ -131,13 +131,13 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
   defp echo_request(router, payload) do
     payload
     |> Message.new()
-    |> Message.meta_put_new(:service_id, {"liblink", :echo})
+    |> Message.meta_put_new("ll-service-id", {"liblink", :echo})
     |> request(router)
   end
 
   defp ping_request(router) do
     Message.new(:ping)
-    |> Message.meta_put_new(:service_id, {"liblink", :ping})
+    |> Message.meta_put_new("ll-service-id", {"liblink", :ping})
     |> request(router)
   end
 end

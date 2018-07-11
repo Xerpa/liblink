@@ -69,7 +69,8 @@ defmodule Liblink.Cluster.Protocol.Router do
       }) do
     {status, reply} =
       with {_, {:ok, message}} <- {:codec, Message.decode(message)},
-           {_, {:ok, {service_id, _}}} <- {:service, Message.meta_fetch(message, :service_id)},
+           {_, {:ok, {service_id, _}}} <-
+             {:service, Message.meta_fetch(message, "ll-service-id")},
            {_, {:ok, service}} <- {:service, Map.fetch(services, service_id)} do
         call_service(cluster, service, message)
       else
@@ -80,13 +81,11 @@ defmodule Liblink.Cluster.Protocol.Router do
           {:failure, Message.new({:error, :not_found})}
       end
 
-    metadata =
-      reply.metadata
-      |> Map.new(fn {k, v} -> {String.downcase(to_string(k)), v} end)
-      |> Map.put(:date, DateTime.utc_now())
-      |> Map.put(:status, status)
-
-    payload = Message.encode(%{reply | metadata: metadata})
+    payload =
+      reply
+      |> Message.meta_put("ll-status", status)
+      |> Message.meta_put("ll-timestamp", DateTime.utc_now())
+      |> Message.encode()
 
     [routekey | [requestid | payload]]
   end
@@ -102,7 +101,7 @@ defmodule Liblink.Cluster.Protocol.Router do
     ]
 
     target =
-      case Message.meta_fetch(request, :service_id) do
+      case Message.meta_fetch(request, "ll-service-id") do
         {:ok, {_, target}} when is_atom(target) -> target
         _ -> nil
       end

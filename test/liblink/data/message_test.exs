@@ -20,7 +20,7 @@ defmodule Liblink.Data.MessageTest do
 
   property "encode . decode = id" do
     check all payload <- term(),
-              metadata <- map_of(one_of([binary(), atom(:alphanumeric)]), term()) do
+              metadata <- map_of(binary(), term()) do
       message = Message.new(payload, metadata)
       assert {:ok, message} == Message.decode(Message.encode(message))
     end
