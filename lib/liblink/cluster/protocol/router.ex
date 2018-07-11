@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Router do
+  alias Liblink.Socket
+  alias Liblink.Socket.Device
   alias Liblink.Data.Message
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
@@ -48,6 +50,17 @@ defmodule Liblink.Cluster.Protocol.Router do
   end
 
   def _cluster, do: :error
+
+  @spec handler(iodata, Device.t(), t) :: :ok
+  def handler(message, device = %Device{}, router = %__MODULE__{}) do
+    _pid =
+      spawn(fn ->
+        reply = dispatch(message, router)
+        :ok = Socket.sendmsg(device, reply)
+      end)
+
+    :ok
+  end
 
   @spec dispatch(iodata, t) :: iodata
   def dispatch([routekey | [requestid | message]], %__MODULE__{
