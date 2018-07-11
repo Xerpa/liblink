@@ -24,6 +24,8 @@ defmodule Liblink.Socket.Recvmsg do
 
   @opaque state_t :: map
 
+  @type consumer_t :: Impl.consumer_t
+
   @spec start() :: {:ok, pid}
   def start() do
     GenServer.start(__MODULE__, [])

@@ -104,7 +104,8 @@ defmodule Liblink.Socket do
     end
   end
 
-  @spec consume(Device.t(), integer() | :infinity) :: :ok
+  @spec consume(Device.t(), Recvmsg.consumer_t(), integer() | :infinity) ::
+          :ok | {:error, :badstate}
   def consume(device, consumer, timeout \\ 1_000) do
     Recvmsg.consume(device.recvmsg_pid, consumer, timeout)
   end
