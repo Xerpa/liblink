@@ -39,13 +39,13 @@ defmodule Liblink.Socket.Recvmsg do
   @doc """
   halt the recvmsg thread
   """
-  @spec halt(pid, Timeout.timeout_t()) :: :ok
+  @spec halt(pid, timeout) :: :ok
   def halt(pid, timeout \\ 5_000), do: Shared.halt(pid, timeout)
 
   @doc """
   halt the current consumer
   """
-  @spec halt_consumer(pid, Timeout.timeout_t()) :: :ok
+  @spec halt_consumer(pid, timeout) :: :ok
   def halt_consumer(pid, timeout \\ 5_000) do
     GenServer.call(pid, {:halt, :consumer}, timeout)
   end

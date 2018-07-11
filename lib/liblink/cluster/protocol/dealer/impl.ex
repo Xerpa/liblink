@@ -80,7 +80,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
     {:reply, :ok, state}
   end
 
-  @spec sendmsg(iodata, pid, Timeout.timeout_t(), state_t) ::
+  @spec sendmsg(iodata, pid, timeout, state_t) ::
           {:reply, {:ok, binary} | {:error, :no_connection}, state_t}
   def sendmsg(message, from, timeout_in_ms, state)
       when is_iodata(message) and is_pid(from) and is_timeout(timeout_in_ms) do

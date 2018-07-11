@@ -17,7 +17,6 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   alias Liblink.Socket
   alias Liblink.Socket.Device
-  alias Liblink.Timeout
   alias Liblink.Data.Message
   alias Liblink.Cluster.Protocol.Dealer.Impl
 
@@ -29,19 +28,19 @@ defmodule Liblink.Cluster.Protocol.Dealer do
     GenServer.start_link(__MODULE__, options)
   end
 
-  @spec attach(pid, Device.t(), Timeout.timeout_t()) :: :ok | no_return
+  @spec attach(pid, Device.t(), timeout) :: :ok | no_return
   def attach(pid, device = %Device{}, timeout \\ 1_000)
       when is_pid(pid) and is_timeout(timeout) do
     GenServer.call(pid, {:add_dev, device}, timeout)
   end
 
-  @spec detach(pid, Device.t(), Timeout.timeout_t()) :: :ok | no_return
+  @spec detach(pid, Device.t(), timeout) :: :ok | no_return
   def detach(pid, device = %Device{}, timeout \\ 1_000)
       when is_pid(pid) and is_timeout(timeout) do
     GenServer.call(pid, {:del_dev, device}, timeout)
   end
 
-  @spec request(pid, Message.t(), Timeout.timeout_t()) ::
+  @spec request(pid, Message.t(), timeout) ::
           {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
   def request(dealer, message = %Message{}, timeout_in_ms \\ 1_000)
       when is_pid(dealer) and is_timeout(timeout_in_ms) do
