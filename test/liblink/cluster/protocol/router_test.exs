@@ -26,19 +26,6 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
   @moduletag capture_log: true
 
   describe "new" do
-    test "cluster with duplicated services" do
-      service =
-        Service.new!(
-          id: "foo",
-          protocol: :request_response,
-          exports: Exports.new!(:module, module: TestService)
-        )
-
-      cluster = Cluster.new!(id: "liblink", announce: Announce.new!(services: [service, service]))
-
-      assert :error == Router.new(cluster)
-    end
-
     test "valid cluster" do
       service =
         Service.new!(

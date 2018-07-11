@@ -18,27 +18,27 @@ defmodule Liblink.Data.Cluster.Announce do
 
   import Liblink.Data.Macros
 
-  defstruct [:meta, :services]
+  defstruct [:metadata, :services]
 
   @type t :: %__MODULE__{}
 
   def_bang(:new, 1)
 
   @type option ::
-          {:meta, %{optional(atom | String.t()) => atom | String.t()}}
+          {:metadata, %{optional(atom | String.t()) => atom | String.t()}}
           | {:services, [Service.t()]}
 
   @spec new([option]) ::
           {:ok, t}
-          | {:error, {:meta, :invalid}}
+          | {:error, {:metadata, :invalid}}
           | {:error, {:services, :invalid}}
           | Keyword.fetch_error()
   def new(options) when is_list(options) do
-    with {:ok, meta} <- Keyword.fetch_map(options, :meta, %{}),
-         {:ok, svcs} <- Keyword.fetch_list(options, :services, []),
-         {_, true} <- {:meta, valid_meta?(meta)},
-         {_, true} <- {:services, valid_svcs?(svcs)} do
-      {:ok, %__MODULE__{meta: meta, services: svcs}}
+    with {:ok, metadata} <- Keyword.fetch_map(options, :metadata, %{}),
+         {:ok, services} <- Keyword.fetch_list(options, :services, []),
+         {_, true} <- {:metadata, valid_metadata?(metadata)},
+         {_, true} <- {:services, valid_services?(services)} do
+      {:ok, %__MODULE__{metadata: metadata, services: services}}
     else
       {key, false} ->
         {:error, {key, :invalid}}
@@ -48,9 +48,9 @@ defmodule Liblink.Data.Cluster.Announce do
     end
   end
 
-  @spec valid_meta?(map) :: boolean
-  defp valid_meta?(meta = %{}) do
-    Enum.all?(meta, fn term ->
+  @spec valid_metadata?(map) :: boolean
+  defp valid_metadata?(metadata = %{}) do
+    Enum.all?(metadata, fn term ->
       case term do
         {k, v} ->
           (is_atom(k) or is_binary(k)) and (is_atom(v) or is_binary(v))
@@ -61,10 +61,18 @@ defmodule Liblink.Data.Cluster.Announce do
     end)
   end
 
-  @spec valid_svcs?(list) :: boolean
-  defp valid_svcs?(svcs) when is_list(svcs) do
-    Enum.all?(svcs, fn svc ->
-      match?(%Service{}, svc)
-    end) and 0 < Enum.count(svcs)
+  @spec valid_services?(list) :: boolean
+  defp valid_services?(services) when is_list(services) do
+    if Enum.all?(services, &match?(%Service{}, &1)) do
+      all_services = Enum.map(services, & &1.id)
+      set_services = MapSet.new(all_services)
+
+      all_services_count = Enum.count(all_services)
+      set_services_count = Enum.count(set_services)
+
+      0 < all_services_count and all_services_count == set_services_count
+    else
+      false
+    end
   end
 end

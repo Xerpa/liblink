@@ -35,18 +35,10 @@ defmodule Liblink.Cluster.Protocol.Router do
   def new(cluster = %Cluster{announce: %Announce{}}) do
     services =
       cluster.announce.services
-      |> Enum.filter(fn service ->
-        service.protocol == :request_response
-      end)
-      |> Map.new(fn service ->
-        {service.id, service}
-      end)
+      |> Enum.filter(fn service -> service.protocol == :request_response end)
+      |> Map.new(fn service -> {service.id, service} end)
 
-    if Enum.count(services) == Enum.count(cluster.announce.services) do
-      {:ok, %__MODULE__{cluster: cluster, services: services}}
-    else
-      :error
-    end
+    {:ok, %__MODULE__{cluster: cluster, services: services}}
   end
 
   def _cluster, do: :error
