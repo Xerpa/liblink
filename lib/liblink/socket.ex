@@ -109,4 +109,9 @@ defmodule Liblink.Socket do
   def consume(device, consumer, timeout \\ 1_000) do
     Recvmsg.consume(device.recvmsg_pid, consumer, timeout)
   end
+
+  @spec halt_consumer(Device.t(), non_neg_integer() | :infinity) :: :ok
+  def halt_consumer(device, timeout \\ 1_000) do
+    Recvmsg.halt_consumer(device.recvmsg_pid, timeout)
+  end
 end
