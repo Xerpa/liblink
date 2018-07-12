@@ -34,12 +34,12 @@ defmodule Liblink.Network.Consul.Agent do
   end
 
   @spec service(Tesla.Client.t(), String.t()) :: Tesla.Env.result()
-  def service(client = %Tesla.Client{}, service_name) when is_binary(service_name) do
+  def service(client = %Tesla.Client{}, service_id) when is_binary(service_id) do
     with {:ok, reply = %{status: 200}} <- services(client) do
       {:ok,
        Map.update(reply, :body, nil, fn body ->
          body
-         |> Enum.filter(fn {service, _} -> service == service_name end)
+         |> Enum.filter(fn {service, _} -> service == service_id end)
          |> Map.new()
        end)}
     end
