@@ -100,7 +100,8 @@ defmodule Liblink.Data.KeywordTest do
     end
   end
 
-  test "fetch_struct" do
+  test "fetch_bool" do
+    test_fetcher(:fetch_bool, true)
   end
 
   test "fetch_atom" do
