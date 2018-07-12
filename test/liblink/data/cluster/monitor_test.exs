@@ -19,15 +19,14 @@ defmodule Liblink.Data.Cluster.MonitorTest do
 
   describe "new" do
     test "default" do
-      assert %Monitor{interval_in_ms: 1_000, monitor: monitor} = Monitor.new!()
+      assert %Monitor{monitor: monitor} = Monitor.new!()
       assert monitor.()
     end
 
     test "success" do
       monitor = fn -> false end
 
-      assert %Monitor{interval_in_ms: 1, monitor: monitor} ==
-               Monitor.new!(interval_in_ms: 1, monitor: monitor)
+      assert %Monitor{monitor: monitor} == Monitor.new!(monitor: monitor)
     end
   end
 end
