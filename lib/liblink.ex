@@ -16,15 +16,32 @@ defmodule Liblink do
   use Application
 
   alias Liblink.Nif
-  alias Liblink.Socket.Monitor
 
   def start(_type, _args) do
+    db_hooks = [
+      Liblink.Cluster.Announce
+    ]
+
     children = [
       %{
-        id: Monitor,
-        start: {Monitor, :start_link, []},
+        id: Liblink.Socket.Monitor,
+        start: {Liblink.Socket.Monitor, :start_link, [[], [name: Liblink.Socket.Monitor]]},
         restart: :permanent,
-        shutdown: 90_000
+        shutdown: 30_000
+      },
+      %{
+        id: Liblink.Cluster.ClusterSupervisor,
+        start:
+          {Liblink.Cluster.ClusterSupervisor, :start_link,
+           [[], [name: Liblink.Cluster.ClusterSupervisor]]},
+        restart: :permanent,
+        shutdown: 30_000
+      },
+      %{
+        id: Liblink.Cluster.Database,
+        start:
+          {Liblink.Cluster.Database, :start_link,
+           [[hooks: db_hooks], [name: Liblink.Cluster.Database]]}
       }
     ]
 

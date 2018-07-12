@@ -19,9 +19,9 @@ defmodule Liblink.Socket.Monitor do
 
   require Logger
 
-  @spec start_link() :: GenServer.on_start()
-  def start_link() do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  @spec start_link([], [{:name, atom}]) :: GenServer.on_start()
+  def start_link([], opts \\ []) do
+    GenServer.start_link(__MODULE__, [], opts)
   end
 
   @impl true
