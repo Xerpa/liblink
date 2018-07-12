@@ -18,30 +18,27 @@ defmodule Liblink.Cluster.Protocol.Router do
   alias Liblink.Data.Message
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
-  alias Liblink.Data.Cluster.Announce
 
   import Liblink.Data.Macros
 
   require Logger
 
-  defstruct [:cluster, :services]
+  defstruct [:cluster_id, :services]
 
   @type t :: %__MODULE__{}
 
-  @spec new!(Cluster.t()) :: t
-  def_bang(:new, 1)
+  @spec new!(Cluster.id(), [Service.t()]) :: t
+  def_bang(:new, 2)
 
-  @spec new(Cluster.t()) :: {:ok, t} | :error
-  def new(cluster = %Cluster{announce: %Announce{}}) do
+  @spec new(Cluster.id(), [Service.t()]) :: {:ok, t} | :error
+  def new(cluster_id, services) do
     services =
-      cluster.announce.services
+      services
       |> Enum.filter(fn service -> service.protocol == :request_response end)
       |> Map.new(fn service -> {service.id, service} end)
 
-    {:ok, %__MODULE__{cluster: cluster, services: services}}
+    {:ok, %__MODULE__{cluster_id: cluster_id, services: services}}
   end
-
-  def _cluster, do: :error
 
   @spec handler(iodata, Device.t(), t) :: :ok
   def handler(message, device = %Device{}, router = %__MODULE__{}) do
@@ -55,16 +52,13 @@ defmodule Liblink.Cluster.Protocol.Router do
   end
 
   @spec dispatch(iodata, t) :: iodata
-  def dispatch([routekey | [requestid | message]], %__MODULE__{
-        cluster: cluster,
-        services: services
-      }) do
+  def dispatch([routekey | [requestid | message]], state = %__MODULE__{}) do
     {status, reply} =
       with {_, {:ok, message}} <- {:codec, Message.decode(message)},
            {_, {:ok, {service_id, _}}} <-
              {:service, Message.meta_fetch(message, "ll-service-id")},
-           {_, {:ok, service}} <- {:service, Map.fetch(services, service_id)} do
-        call_service(cluster, service, message)
+           {_, {:ok, service}} <- {:service, Map.fetch(state.services, service_id)} do
+        call_service(state.cluster_id, service, message)
       else
         {:codec, _term} ->
           {:failure, Message.new({:error, :io_error})}
@@ -82,12 +76,13 @@ defmodule Liblink.Cluster.Protocol.Router do
     [routekey | [requestid | payload]]
   end
 
-  @spec call_service(Cluster.t(), Servicet.t(), Message.t()) :: {:success | :failure, Message.t()}
-  defp call_service(cluster = %Cluster{}, service = %Service{}, request = %Message{}) do
+  @spec call_service(Cluster.id(), Servicet.t(), Message.t()) ::
+          {:success | :failure, Message.t()}
+  defp call_service(cluster_id, service = %Service{}, request = %Message{}) do
     exports = service.exports
 
     metadata = [
-      cluster: cluster.id,
+      cluster: cluster_id,
       service: service.id,
       request: request
     ]

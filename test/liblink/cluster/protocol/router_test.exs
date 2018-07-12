@@ -16,10 +16,8 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
   use ExUnit.Case, async: true
 
   alias Liblink.Data.Message
-  alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Exports
-  alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.Protocol.Router
   alias Test.Liblink.TestService
 
@@ -34,9 +32,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
           protocol: :request_response
         )
 
-      cluster = Cluster.new!(id: "liblink", announce: Announce.new!(services: [service]))
-
-      assert {:ok, _} = Router.new(cluster)
+      assert {:ok, _} = Router.new("liblink", [service])
     end
   end
 
@@ -49,11 +45,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
           protocol: :request_response
         )
 
-      announce = Announce.new!(services: [service])
-
-      cluster = Cluster.new!(id: "liblink", announce: announce)
-
-      router = Router.new!(cluster)
+      router = Router.new!("liblink", [service])
 
       {:ok, [router: router]}
     end

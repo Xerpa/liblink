@@ -17,10 +17,8 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
   alias Liblink.Socket
   alias Liblink.Data.Message
-  alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Exports
-  alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.Protocol.Dealer
   alias Liblink.Cluster.Protocol.Router
   alias Test.Liblink.TestService
@@ -52,9 +50,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
           protocol: :request_response
         )
 
-      cluster = Cluster.new!(id: "liblink", announce: Announce.new!(services: [service]))
-
-      {:ok, state} = Router.new(cluster)
+      state = Router.new!("liblink", [service])
       :ok = Socket.consume(router, {Router, :handler, [router, state]})
 
       {:ok, pid} = Dealer.start_link()
