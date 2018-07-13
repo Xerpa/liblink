@@ -15,6 +15,8 @@
 defmodule Liblink.Cluster.FoldServer do
   use GenServer
 
+  alias Liblink.Data.Keyword
+
   @typep state_t :: %{
            :proc => proc,
            :interval => non_neg_integer,
@@ -31,12 +33,19 @@ defmodule Liblink.Cluster.FoldServer do
 
   @type init_callback :: (() -> term)
 
-  @spec start_link(proc, init_callback, non_neg_integer) :: {:ok, pid}
-  def start_link(proc = %{exec: exec, halt: halt, data: _}, init_callback, interval_in_ms)
-      when is_function(exec, 1) and is_function(halt, 1) and is_function(init_callback, 0) and
-             is_integer(interval_in_ms) and interval_in_ms > 0 do
-    state = %{proc: proc, interval: interval_in_ms}
-    GenServer.start_link(__MODULE__, state: state, init_callback: init_callback)
+  @type option ::
+          {:proc, proc}
+          | {:init_callback, init_callback}
+          | {:interval_in_ms, non_neg_integer}
+
+  @spec start_link([option]) :: {:ok, pid}
+  def start_link(args) when is_list(args) do
+    with {:ok, proc} <- Keyword.fetch_map(args, :proc),
+         {:ok, init_callback} <- Keyword.fetch_function(args, :init_callback),
+         {:ok, interval_in_ms} <- Keyword.fetch_integer(args, :interval_in_ms) do
+      state = %{proc: proc, interval: interval_in_ms}
+      GenServer.start_link(__MODULE__, state: state, init_callback: init_callback)
+    end
   end
 
   @spec halt(pid) :: :ok
@@ -61,7 +70,7 @@ defmodule Liblink.Cluster.FoldServer do
   end
 
   @impl true
-  def terminate(reason, state) do
+  def terminate(_reason, state) do
     _ = run_halt(state)
 
     :ok

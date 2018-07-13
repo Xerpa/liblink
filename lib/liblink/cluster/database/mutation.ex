@@ -29,7 +29,7 @@ defmodule Liblink.Cluster.Database.Mutation do
   end
 
   @spec add_cluster_announce(Database.t(), Cluster.id(), pid) :: :ok
-  def add_cluster_announce(db \\ Database, cluster_id, pid) when is_pid(pid) do
+  def add_cluster_announce(db \\ Database, cluster_id, pid) do
     Database.put_async(db, {:announce, cluster_id}, pid)
   end
 

@@ -13,7 +13,7 @@ defmodule Liblink.Cluster.Database do
 
   @spec start_link([{:hooks, [Hook.t()]}], [{:name, atom}]) ::
           {:ok, pid} | {:error, {:already_started, pid}}
-  def start_link(args, opts \\ []) do
+  def start_link(args, opts \\ [name: __MODULE__]) do
     GenServer.start_link(__MODULE__, args, opts)
   end
 

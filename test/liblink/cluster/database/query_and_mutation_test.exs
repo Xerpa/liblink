@@ -21,7 +21,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
   alias Liblink.Cluster.Database.Mutation
 
   setup do
-    {:ok, pid} = Database.start_link([])
+    {:ok, pid} = Database.start_link([], [])
     {:ok, tid} = Database.get_tid(pid)
 
     {:ok, [pid: pid, tid: tid]}

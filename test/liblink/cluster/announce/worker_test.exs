@@ -24,6 +24,8 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
   alias Liblink.Cluster.Announce.Worker
   alias Liblink.Network.Consul
 
+  @moduletag capture_log: true
+
   describe "new" do
     setup do
       consul = Consul.client(Config.new!())

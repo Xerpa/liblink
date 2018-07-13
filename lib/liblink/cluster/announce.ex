@@ -44,7 +44,7 @@ defmodule Liblink.Cluster.Announce do
     end
   end
 
-  @spec suppress_cluster(pid, :ets.tid, term) :: :ok
+  @spec suppress_cluster(pid, :ets.tid(), term) :: :ok
   defp suppress_cluster(pid, tid, cluster_id) do
     with {:ok, announce_pid} <- Query.find_cluster_announce(tid, cluster_id) do
       FoldServer.halt(announce_pid)
@@ -54,7 +54,7 @@ defmodule Liblink.Cluster.Announce do
     :ok
   end
 
-  @spec announce_cluster(pid, Woker.t) :: {:ok, pid}
+  @spec announce_cluster(pid, Woker.t()) :: {:ok, pid}
   defp announce_cluster(pid, worker) do
     proc = %{
       exec: &Worker.exec/1,
@@ -66,13 +66,9 @@ defmodule Liblink.Cluster.Announce do
       :ok = Mutation.add_cluster_announce(pid, worker.cluster.id, self())
     end
 
-    task = %{
-      id: :cluster_announce,
-      start: {FoldServer, :start_link, [proc, init_callback, 1_000]},
-      restart: :transient,
-      shutdown: 5_000
-    }
-
-    ClusterSupervisor.start_child(task)
+    {:ok, _pid} =
+      {FoldServer, [proc: proc, init_callback: init_callback, interval_in_ms: 1_000]}
+      |> Supervisor.child_spec(shutdown: 10_000, restart: :transient)
+      |> ClusterSupervisor.start_child()
   end
 end

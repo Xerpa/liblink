@@ -23,9 +23,11 @@ defmodule Liblink.Cluster.AnnounceTest do
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
 
+  @moduletag capture_log: true
+
   describe "announcing a cluster via database" do
     setup do
-      {:ok, pid} = Database.start_link(hooks: [Liblink.Cluster.Announce])
+      {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Announce]], [])
       {:ok, tid} = Database.get_tid(pid)
 
       cluster =

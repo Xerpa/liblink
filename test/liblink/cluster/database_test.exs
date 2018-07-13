@@ -18,7 +18,7 @@ defmodule Liblink.Cluster.DatabaseTest do
   alias Liblink.Cluster.Database
 
   setup do
-    {:ok, pid} = Database.start_link([])
+    {:ok, pid} = Database.start_link([], [])
     {:ok, tid} = Database.get_tid(pid)
 
     {:ok, [pid: pid, tid: tid]}
