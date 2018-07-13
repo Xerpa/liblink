@@ -24,6 +24,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   require Logger
 
+  @spec start_link([Impl.option()]) :: {:ok, pid}
   def start_link(options \\ []) do
     GenServer.start_link(__MODULE__, options)
   end

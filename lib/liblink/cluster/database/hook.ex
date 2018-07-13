@@ -13,7 +13,11 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Database.Hook do
-  @type event :: {:put | :del, key :: term, old_value :: term, new_value :: term}
+  @type t :: module
+
+  @type event ::
+          {:put, key :: term, old_value :: term, new_value :: term}
+          | {:del, key :: term, value :: term}
 
   @callback before_hook(event) :: boolean
 
@@ -33,6 +37,7 @@ defmodule Liblink.Cluster.Database.Hook do
     end
   end
 
+  @spec call_before_hooks([t], event) :: :ok | :error
   def call_before_hooks(hooks, event) do
     Enum.reduce_while(hooks, :ok, fn hook, _ ->
       if hook.before_hook(event) do
@@ -43,6 +48,7 @@ defmodule Liblink.Cluster.Database.Hook do
     end)
   end
 
+  @spec call_after_hooks([t], pid, :ets.tid(), event) :: :ok
   def call_after_hooks(hooks, pid, tid, event) do
     Enum.each(hooks, fn hook ->
       hook.after_hook(pid, tid, event)

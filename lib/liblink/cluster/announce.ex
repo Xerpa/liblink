@@ -25,29 +25,36 @@ defmodule Liblink.Cluster.Announce do
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
 
-  def after_hook(pid, _tid, {:put, key, _, value}) do
-    with {:cluster, _} <- key,
-         cluster = %Cluster{announce: %Announce{}} <- value,
-         {:ok, config} <- Config.new(),
-         {:ok, worker} <- Worker.new(Consul.client(config), cluster) do
-      announce_cluster(pid, worker)
+  @impl true
+  def after_hook(pid, tid, event) do
+    case event do
+      {:put, key, _, value} ->
+        with {:cluster, _} <- key,
+             cluster = %Cluster{announce: %Announce{}} <- value,
+             {:ok, config} <- Config.new(),
+             {:ok, worker} <- Worker.new(Consul.client(config), cluster) do
+          announce_cluster(pid, worker)
+        end
+
+      {:del, key, value} ->
+        with {:cluster, cluster_id} <- key,
+             %Cluster{announce: %Announce{}} <- value do
+          suppress_cluster(pid, tid, cluster_id)
+        end
     end
   end
 
-  def after_hook(pid, tid, {:del, key, value}) do
-    with {:cluster, cluster_id} <- key,
-         %Cluster{announce: %Announce{}} <- value do
-      suppress_cluster(pid, tid, cluster_id)
-    end
-  end
-
+  @spec suppress_cluster(pid, :ets.tid, term) :: :ok
   defp suppress_cluster(pid, tid, cluster_id) do
     with {:ok, announce_pid} <- Query.find_cluster_announce(tid, cluster_id) do
       FoldServer.halt(announce_pid)
       Mutation.del_cluster_announce(pid, cluster_id)
     end
+
+    :ok
   end
 
+  @spec announce_cluster(pid, Woker.t) :: {:ok, pid}
   defp announce_cluster(pid, worker) do
     proc = %{
       exec: &Worker.exec/1,

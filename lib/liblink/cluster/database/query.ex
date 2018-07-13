@@ -16,10 +16,12 @@ defmodule Liblink.Cluster.Database.Query do
   alias Liblink.Data.Cluster
   alias Liblink.Cluster.Database
 
+  @spec find_cluster(Database.tid(), Cluster.id()) :: {:ok, Cluster.t()} | :error
   def find_cluster(tid, cluster_id) do
     Database.fetch(tid, {:cluster, cluster_id})
   end
 
+  @spec find_cluster_announce(Database.tid(), Cluster.id()) :: {:ok, pid} | :error
   def find_cluster_announce(tid, cluster_id) do
     Database.fetch(tid, {:announce, cluster_id})
   end

@@ -15,6 +15,23 @@
 defmodule Liblink.Cluster.FoldServer do
   use GenServer
 
+  @typep state_t :: %{
+           :proc => proc,
+           :interval => non_neg_integer,
+           optional(:halted) => true
+         }
+
+  @type data :: term
+
+  @type proc :: %{
+          required(:exec) => (data -> data),
+          required(:halt) => (data -> term),
+          required(:data) => data
+        }
+
+  @type init_callback :: (() -> term)
+
+  @spec start_link(proc, init_callback, non_neg_integer) :: {:ok, pid}
   def start_link(proc = %{exec: exec, halt: halt, data: _}, init_callback, interval_in_ms)
       when is_function(exec, 1) and is_function(halt, 1) and is_function(init_callback, 0) and
              is_integer(interval_in_ms) and interval_in_ms > 0 do
@@ -22,6 +39,7 @@ defmodule Liblink.Cluster.FoldServer do
     GenServer.start_link(__MODULE__, state: state, init_callback: init_callback)
   end
 
+  @spec halt(pid) :: :ok
   def halt(pid) do
     GenServer.cast(pid, :halt)
   end
@@ -44,7 +62,7 @@ defmodule Liblink.Cluster.FoldServer do
 
   @impl true
   def terminate(reason, state) do
-    run_halt(state)
+    _ = run_halt(state)
 
     :ok
   end
@@ -87,12 +105,14 @@ defmodule Liblink.Cluster.FoldServer do
     end
   end
 
+  @spec schedule(state_t) :: state_t
   defp schedule(state) do
     Process.send_after(self(), :exec, state.interval)
 
     state
   end
 
+  @spec run_exec(state_t) :: state_t
   defp run_exec(state) do
     proc = state.proc
     data = proc.exec.(proc.data)
@@ -100,6 +120,7 @@ defmodule Liblink.Cluster.FoldServer do
     %{state | proc: %{proc | data: data}}
   end
 
+  @spec run_halt(state_t) :: state_t
   defp run_halt(state = %{halted: true}), do: state
 
   defp run_halt(state) do

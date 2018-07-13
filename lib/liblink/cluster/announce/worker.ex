@@ -15,6 +15,7 @@
 defmodule Liblink.Cluster.Announce.Worker do
   alias Liblink.Random
   alias Liblink.Socket
+  alias Liblink.Keyword
   alias Liblink.Socket.Device
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Monitor
@@ -27,8 +28,12 @@ defmodule Liblink.Cluster.Announce.Worker do
 
   require Logger
 
+  @type t :: map
+
+  @spec new!(Consul.t(), Cluster.t()) :: t
   def_bang(:new, 2)
 
+  @spec new(Consul.t(), Cluster.t()) :: {:ok, t} | :error | Keyword.fetch_error()
   def new(consul = %Tesla.Client{}, cluster = %Cluster{announce: %Announce{}}) do
     endpoint = Random.random_tcp_endpoint("0.0.0.0")
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
@@ -66,12 +71,14 @@ defmodule Liblink.Cluster.Announce.Worker do
     end
   end
 
+  @spec halt(t) :: :ok
   def halt(state) do
-    Agent.service_deregister(state.consul, state.service0.id)
+    _ = Agent.service_deregister(state.consul, state.service0.id)
 
     Socket.close(state.socket)
   end
 
+  @spec exec(t) :: t
   def exec(state) do
     tags =
       state.cluster.announce.services
@@ -92,6 +99,7 @@ defmodule Liblink.Cluster.Announce.Worker do
     state
   end
 
+  @spec service_register(t, Service.t()) :: {:ok, Service.t()} | :error
   defp service_register(state, service) do
     if state.service == service do
       {:ok, service}
@@ -112,6 +120,7 @@ defmodule Liblink.Cluster.Announce.Worker do
     end
   end
 
+  @spec check_pass(t, Service.t()) :: :ok | :error
   defp check_pass(state, service) do
     [check] = service.checks
 
@@ -130,6 +139,7 @@ defmodule Liblink.Cluster.Announce.Worker do
     end
   end
 
+  @spec string(atom | String.t()) :: String.t()
   defp string(atom) when is_atom(atom) do
     Atom.to_string(atom)
   end

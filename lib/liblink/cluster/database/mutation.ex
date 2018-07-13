@@ -16,20 +16,24 @@ defmodule Liblink.Cluster.Database.Mutation do
   alias Liblink.Data.Cluster
   alias Liblink.Cluster.Database
 
+  @spec add_cluster(Database.t(), Cluster.t()) :: :ok | :error
   def add_cluster(db \\ Database, cluster = %Cluster{}) do
     key = {:cluster, cluster.id}
     Database.put_new(db, key, cluster)
   end
 
+  @spec del_cluster(Database.t(), Cluster.id()) :: :ok
   def del_cluster(db \\ Database, cluster_id) do
     key = {:cluster, cluster_id}
     Database.del(db, key)
   end
 
-  def add_cluster_announce(db \\ Database, cluster_id, value) do
-    Database.put_async(db, {:announce, cluster_id}, value)
+  @spec add_cluster_announce(Database.t(), Cluster.id(), pid) :: :ok
+  def add_cluster_announce(db \\ Database, cluster_id, pid) when is_pid(pid) do
+    Database.put_async(db, {:announce, cluster_id}, pid)
   end
 
+  @spec del_cluster_announce(Database.t(), Cluster.id()) :: :ok
   def del_cluster_announce(db \\ Database, cluster_id) do
     Database.del_async(db, {:announce, cluster_id})
   end

@@ -15,6 +15,7 @@
 defmodule Liblink.Cluster.Database.UniqConstraint do
   use Liblink.Cluster.Database.Hook
 
+  @impl true
   def before_hook(event) do
     case event do
       {:put, _key, prev_value, _} ->

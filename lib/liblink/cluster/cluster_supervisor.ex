@@ -17,6 +17,8 @@ defmodule Liblink.Cluster.ClusterSupervisor do
 
   alias Liblink.Data.Keyword
 
+  @spec start_link([{:strategy, :one_for_one}], [{:name, atom}]) ::
+          {:ok, pid} | {:error, {:already_started, pid}}
   def start_link(args, opts \\ []) do
     DynamicSupervisor.start_link(__MODULE__, args, opts)
   end
@@ -28,11 +30,10 @@ defmodule Liblink.Cluster.ClusterSupervisor do
     DynamicSupervisor.init(args)
   end
 
-  def start_child(pid \\ __MODULE__, child) do
-    DynamicSupervisor.start_child(pid, child)
+  @spec start_child(Supervision.child_spec()) :: DynamicSupervisor.on_start_child()
+  def start_child(child) do
+    start_child(__MODULE__, child)
   end
 
-  def terminate_child(pid \\ __MODULE__, child_pid) do
-    DynamicSupervisor.terminate_child(pid, child_pid)
-  end
+  defdelegate start_child(_pid, _child), to: DynamicSupervisor
 end
