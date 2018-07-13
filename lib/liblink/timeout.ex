@@ -15,8 +15,6 @@
 defmodule Liblink.Timeout do
   import Liblink.Guards
 
-  @type timeout_t :: :infinity | non_neg_integer
-
   @type deadline_t :: :infinity | integer
 
   @spec deadline(integer, :nanosecond | :microsecond | :millisecond | :second) :: deadline_t
@@ -31,7 +29,7 @@ defmodule Liblink.Timeout do
     :erlang.monotonic_time() > deadline
   end
 
-  @spec timeout_mul(timeout_t, float | integer) :: timeout_t
+  @spec timeout_mul(timeout, float | integer) :: timeout
   def timeout_mul(:infinity, _), do: :infinity
 
   def timeout_mul(timeout, factor)

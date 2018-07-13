@@ -32,8 +32,12 @@ defmodule Liblink.Data.Consul.Config do
   def_bang(:new, 1)
 
   @spec new() :: {:ok, t}
+  def new() do
+    new(Application.get_env(:liblink, :consul, []))
+  end
+
   @spec new([option]) :: {:ok, t} | Keyword.fetch_error()
-  def new(options \\ []) when is_list(options) do
+  def new(options) when is_list(options) do
     with {:ok, endpoint} <-
            Keyword.maybe_fetch_binary(options, :endpoint, "http://localhost:8500"),
          {:ok, token} <- Keyword.maybe_fetch_binary(options, :token, nil),

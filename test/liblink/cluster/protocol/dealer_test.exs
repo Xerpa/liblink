@@ -17,10 +17,8 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
   alias Liblink.Socket
   alias Liblink.Data.Message
-  alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Exports
-  alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.Protocol.Dealer
   alias Liblink.Cluster.Protocol.Router
   alias Test.Liblink.TestService
@@ -52,9 +50,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
           protocol: :request_response
         )
 
-      cluster = Cluster.new!(id: "liblink", announce: Announce.new!(services: [service]))
-
-      {:ok, state} = Router.new(cluster)
+      state = Router.new!("liblink", [service])
       :ok = Socket.consume(router, {Router, :handler, [router, state]})
 
       {:ok, pid} = Dealer.start_link()
@@ -67,54 +63,54 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
        [
          dealer: pid,
          device: dealer,
-         ping_service: %{service_id: {"liblink", :ping}},
-         echo_service: %{service_id: {"liblink", :echo}}
+         ping_service: %{"ll-service-id" => {"liblink", :ping}},
+         echo_service: %{"ll-service-id" => {"liblink", :echo}}
        ]}
     end
 
     @tag no_attach: true
     test "without devices", %{dealer: dealer} do
-      assert {:error, :no_connection} == Dealer.request(dealer, Message.new(:payload), %{})
+      assert {:error, :no_connection} == Dealer.request(dealer, Message.new(:payload))
     end
 
     @tag no_attach: true
-    test "after adding device", %{dealer: dealer, device: device, ping_service: extra_headers} do
+    test "after adding device", %{dealer: dealer, device: device, ping_service: headers} do
       assert :ok == Dealer.attach(dealer, device)
-      assert {:ok, _message} = Dealer.request(dealer, Message.new(:ping), extra_headers)
+      assert {:ok, _message} = Dealer.request(dealer, Message.new(:ping, headers))
     end
 
     test "after removing device", %{dealer: dealer, device: device} do
       assert :ok == Dealer.detach(dealer, device)
 
-      assert {:error, :no_connection} == Dealer.request(dealer, Message.new(:payload), %{})
+      assert {:error, :no_connection} == Dealer.request(dealer, Message.new(:payload))
     end
 
-    test "requests a service", %{dealer: dealer, ping_service: extra_headers} do
-      assert {:ok, message} = Dealer.request(dealer, Message.new(:ping), extra_headers)
-      assert {:ok, :success} == Message.meta_fetch(message, :status)
+    test "requests a service", %{dealer: dealer, ping_service: headers} do
+      assert {:ok, message} = Dealer.request(dealer, Message.new(:ping, headers))
+      assert {:ok, :success} == Message.meta_fetch(message, "ll-status")
       assert :pong == message.payload
     end
 
     test "request a missing service", %{dealer: dealer} do
-      assert {:ok, message} = Dealer.request(dealer, Message.new(nil), %{})
-      assert {:ok, :failure} == Message.meta_fetch(message, :status)
+      assert {:ok, message} = Dealer.request(dealer, Message.new(nil))
+      assert {:ok, :failure} == Message.meta_fetch(message, "ll-status")
       assert {:error, :not_found} == message.payload
     end
 
-    test "can user dealer concurrently", %{dealer: dealer, echo_service: extra_headers} do
+    test "can user dealer concurrently", %{dealer: dealer, echo_service: headers} do
       replies =
         0..100
         |> Enum.map(fn id ->
           Task.async(fn ->
-            request = Message.new({:echo, {:ok, Message.new(id)}})
-            {id, Dealer.request(dealer, request, extra_headers)}
+            request = Message.new({:echo, {:ok, Message.new(id)}}, headers)
+            {id, Dealer.request(dealer, request)}
           end)
         end)
         |> Enum.map(&Task.await/1)
 
       for {id, reply} <- replies do
         assert {:ok, reply = %Message{}} = reply
-        assert {:ok, :success} = Message.meta_fetch(reply, :status)
+        assert {:ok, :success} = Message.meta_fetch(reply, "ll-status")
         assert id == reply.payload
       end
     end

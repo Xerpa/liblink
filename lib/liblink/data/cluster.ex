@@ -22,8 +22,10 @@ defmodule Liblink.Data.Cluster do
 
   @type t :: %__MODULE__{}
 
+  @type id :: String.t()
+
   @type option ::
-          {:id, String.t()}
+          {:id, id}
           | {:announce, Announce.t()}
           | {:discover, Discover.t()}
           | {:policies, Policies.t()}

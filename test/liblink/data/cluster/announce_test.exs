@@ -30,19 +30,25 @@ defmodule Liblink.Data.Cluster.Exports.AnnounceTest do
 
       exports = Exports.new!(:module, module: __MODULE__)
       service = Service.new!(id: "foobar", protocol: :request_response, exports: exports)
-      assert {:ok, announce} = Announce.new(services: [service], meta: meta)
-      assert meta == announce.meta
+      assert {:ok, announce} = Announce.new(services: [service], metadata: meta)
+      assert meta == announce.metadata
     end
 
     test "requires at least one service" do
       assert {:error, {:services, :invalid}} = Announce.new(services: [])
     end
 
+    test "services must be unique" do
+      exports = Exports.new!(:module, module: __MODULE__)
+      service = Service.new!(id: "foobar", protocol: :request_response, exports: exports)
+      assert {:error, {:services, :invalid}} = Announce.new(services: [service, service])
+    end
+
     test "success" do
       exports = Exports.new!(:module, module: __MODULE__)
       service = Service.new!(id: "foobar", protocol: :request_response, exports: exports)
       assert {:ok, announce} = Announce.new(services: [service])
-      assert %{} == announce.meta
+      assert %{} == announce.metadata
       assert [service] == announce.services
     end
   end

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Device do
+  alias Liblink.Nif
+
   @dialyzer [:unknown]
 
   @type t :: %__MODULE__{
@@ -30,5 +32,9 @@ defmodule Liblink.Socket.Device do
          :ok <- GenServer.call(recvmsg, {:attach, device}) do
       {:ok, device}
     end
+  end
+
+  def bind_port(device = %__MODULE__{}) do
+    Nif.bind_port(device.socket)
   end
 end

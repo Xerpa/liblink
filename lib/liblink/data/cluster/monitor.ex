@@ -19,9 +19,9 @@ defmodule Liblink.Data.Cluster.Monitor do
 
   @type t :: %__MODULE__{}
 
-  @type option :: {:interval_in_ms, pos_integer()} | {:monitor, (() -> boolean)}
+  @type option :: {:monitor, (() -> boolean)}
 
-  defstruct [:interval_in_ms, :monitor]
+  defstruct [:monitor]
 
   @spec new!() :: t
   def_bang(:new, 0)
@@ -32,10 +32,9 @@ defmodule Liblink.Data.Cluster.Monitor do
   @spec new() :: {:ok, t}
   @spec new([option]) :: {:ok, t} | {:error, {:monitor, :invalid}} | Keyword.fetch_error()
   def new(options \\ []) when is_list(options) do
-    with {:ok, interval} <- Keyword.fetch_integer(options, :interval_in_ms, 1_000),
-         {:ok, monitor} <- Keyword.fetch_function(options, :monitor, fn -> true end),
+    with {:ok, monitor} <- Keyword.fetch_function(options, :monitor, fn -> true end),
          {_, true} <- {:monitor, is_function(monitor, 0)} do
-      {:ok, %__MODULE__{interval_in_ms: interval, monitor: monitor}}
+      {:ok, %__MODULE__{monitor: monitor}}
     else
       {key, false} ->
         {:error, {key, :invalid}}
@@ -43,5 +42,9 @@ defmodule Liblink.Data.Cluster.Monitor do
       error ->
         error
     end
+  end
+
+  def eval(monitor = %__MODULE__{}) do
+    monitor.monitor.()
   end
 end

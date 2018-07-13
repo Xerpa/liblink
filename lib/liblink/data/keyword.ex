@@ -41,6 +41,12 @@ defmodule Liblink.Data.Keyword do
   @spec fetch(Keyword.t(), Keyword.key()) :: {:ok, term} | :error
   defdelegate fetch(keyword, key), to: Keyword
 
+  @spec fetch_bool(Keyword.t(), Keyword.key()) :: {:ok, boolean} | fetch_error
+  @spec fetch_bool(Keyword.t(), Keyword.key(), boolean) :: {:ok, boolean} | fetch_error
+  @spec maybe_fetch_bool(Keyword.t(), Keyword.key(), map | nil) ::
+          {:ok, boolean | nil} | fetch_error
+  def_fetch(:bool, :is_boolean)
+
   @spec fetch_map(Keyword.t(), Keyword.key()) :: {:ok, map} | fetch_error
   @spec fetch_map(Keyword.t(), Keyword.key(), map) :: {:ok, map} | fetch_error
   @spec maybe_fetch_map(Keyword.t(), Keyword.key(), map | nil) :: {:ok, map | nil} | fetch_error

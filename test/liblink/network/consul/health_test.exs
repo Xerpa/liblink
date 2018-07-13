@@ -38,6 +38,8 @@ defmodule Liblink.Network.Consul.HealthTest do
         checks: [check]
       )
 
+    :ok = Test.Liblink.Consul.flush_services(consul)
+
     on_exit(fn ->
       {:ok, %{status: 200}} = Consul.Agent.service_deregister(consul, service.id)
     end)

@@ -17,7 +17,6 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   alias Liblink.Socket
   alias Liblink.Socket.Device
-  alias Liblink.Timeout
   alias Liblink.Data.Message
   alias Liblink.Cluster.Protocol.Dealer.Impl
 
@@ -25,41 +24,34 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   require Logger
 
+  @spec start_link([Impl.option()]) :: {:ok, pid}
   def start_link(options \\ []) do
     GenServer.start_link(__MODULE__, options)
   end
 
-  @spec attach(pid, Device.t(), Timeout.timeout_t()) :: :ok | no_return
+  @spec attach(pid, Device.t(), timeout) :: :ok | no_return
   def attach(pid, device = %Device{}, timeout \\ 1_000)
       when is_pid(pid) and is_timeout(timeout) do
     GenServer.call(pid, {:add_dev, device}, timeout)
   end
 
-  @spec detach(pid, Device.t(), Timeout.timeout_t()) :: :ok | no_return
+  @spec detach(pid, Device.t(), timeout) :: :ok | no_return
   def detach(pid, device = %Device{}, timeout \\ 1_000)
       when is_pid(pid) and is_timeout(timeout) do
     GenServer.call(pid, {:del_dev, device}, timeout)
   end
 
-  @spec request(pid, Message.t(), map, Timeout.timeout_t()) ::
+  @spec request(pid, Message.t(), timeout) ::
           {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
-  def request(dealer, message = %Message{}, extra_headers, timeout_in_ms \\ 1_000)
-      when is_pid(dealer) and is_timeout(timeout_in_ms) and is_map(extra_headers) and
-             is_timeout(timeout_in_ms) do
+  def request(dealer, message = %Message{}, timeout_in_ms \\ 1_000)
+      when is_pid(dealer) and is_timeout(timeout_in_ms) do
     # FIXME: this might actually take ~ (2 * timeout_in_ms)
 
-    metadata =
-      message.metadata
-      |> Map.new(fn {k, v} -> {to_string(k), v} end)
-      |> Map.merge(extra_headers)
-
-    payload = Message.encode(%{message | metadata: metadata})
-
-    wait_timeout = Timeout.timeout_mul(timeout_in_ms, 1.2)
+    payload = Message.encode(message)
 
     reply =
       try do
-        GenServer.call(dealer, {:sendmsg, payload, self(), wait_timeout})
+        GenServer.call(dealer, {:sendmsg, payload, self(), timeout_in_ms})
       catch
         :exit, {:timeout, {GenServer, :call, _}} ->
           {:error, :timeout}
@@ -73,7 +65,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
             reply -> reply
           end
       after
-        wait_timeout -> {:error, :timeout}
+        timeout_in_ms -> {:error, :timeout}
       end
     end
   end

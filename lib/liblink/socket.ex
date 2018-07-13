@@ -15,7 +15,6 @@
 defmodule Liblink.Socket do
   alias Liblink.Nif
   alias Liblink.Device
-  alias Liblink.Timeout
   alias Liblink.Socket.Monitor
   alias Liblink.Socket.Sendmsg
   alias Liblink.Socket.Recvmsg
@@ -73,19 +72,17 @@ defmodule Liblink.Socket do
     :ok
   end
 
-  @spec sendmsg(Device.t(), iodata, Timeout.timeout_t()) ::
-          Nif.sendmsg_return() | {:error, :timeout}
+  @spec sendmsg(Device.t(), iodata, timeout) :: Nif.sendmsg_return() | {:error, :timeout}
   def sendmsg(device, message, timeout \\ 1_000) do
     Sendmsg.sendmsg(device.sendmsg_pid, message, timeout)
   end
 
-  @spec sendmsg_async(Device.t(), iodata, Timeout.timeout_t()) :: :ok
+  @spec sendmsg_async(Device.t(), iodata, timeout) :: :ok
   def sendmsg_async(device, message, timeout \\ :infinity) do
     Sendmsg.sendmsg_async(device.sendmsg_pid, message, timeout)
   end
 
-  @spec recvmsg(Device.t(), Timeout.timeout_t()) ::
-          {:error, :empty} | {:error, :timeout} | {:ok, iodata}
+  @spec recvmsg(Device.t(), timeout) :: {:error, :empty} | {:error, :timeout} | {:ok, iodata}
   def recvmsg(device, timeout \\ 1_000) do
     case Recvmsg.recvmsg(device.recvmsg_pid, timeout) do
       {:error, :empty} ->
@@ -105,13 +102,12 @@ defmodule Liblink.Socket do
     end
   end
 
-  @spec consume(Device.t(), Recvmsg.consumer_t(), Timeout.timeout_t()) ::
-          :ok | {:error, :badstate}
+  @spec consume(Device.t(), Recvmsg.consumer_t(), timeout) :: :ok | {:error, :badstate}
   def consume(device, consumer, timeout \\ 1_000) do
     Recvmsg.consume(device.recvmsg_pid, consumer, timeout)
   end
 
-  @spec halt_consumer(Device.t(), Timeout.timeout_t()) :: :ok
+  @spec halt_consumer(Device.t(), timeout) :: :ok
   def halt_consumer(device, timeout \\ 1_000) do
     Recvmsg.halt_consumer(device.recvmsg_pid, timeout)
   end

@@ -16,16 +16,17 @@ defmodule Liblink do
   use Application
 
   alias Liblink.Nif
-  alias Liblink.Socket.Monitor
 
   def start(_type, _args) do
+    monitor = Supervisor.child_spec(Liblink.Socket.Monitor, shutdown: 10_000)
+    db_hooks = [Liblink.Cluster.Announce]
+    database = Liblink.Cluster.Database.child_spec(hooks: db_hooks)
+    cluster_supervisor = Supervisor.child_spec({Liblink.Cluster.ClusterSupervisor, []}, [])
+
     children = [
-      %{
-        id: Monitor,
-        start: {Monitor, :start_link, []},
-        restart: :permanent,
-        shutdown: 90_000
-      }
+      monitor,
+      database,
+      cluster_supervisor
     ]
 
     case Nif.load() do

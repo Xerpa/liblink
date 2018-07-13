@@ -24,8 +24,7 @@ defmodule Liblink.Data.Message do
   @v0 <<0>>
 
   def new(payload, metadata \\ %{}) when is_map(metadata) do
-    true = Enum.all?(metadata, fn {k, _} -> is_atom(k) or is_binary(k) end)
-    %__MODULE__{payload: payload, metadata: metadata}
+    %__MODULE__{payload: payload, metadata: metadata_from_enum(metadata)}
   end
 
   def encode(message = %__MODULE__{}) do
@@ -40,22 +39,41 @@ defmodule Liblink.Data.Message do
     end
   end
 
-  def meta_fetch(message = %__MODULE__{}, header) when is_atom(header) or is_binary(header) do
-    Map.fetch(message.metadata, header)
+  def meta_fetch(message = %__MODULE__{}, key) when is_binary(key) or is_atom(key) do
+    key = String.downcase(to_string(key))
+    Map.fetch(message.metadata, key)
   end
 
-  def meta_get(message = %__MODULE__{}, header, default \\ nil)
-      when is_atom(header) or is_binary(header) do
-    Map.get(message.metadata, header, default)
+  def meta_get(message = %__MODULE__{}, key, default \\ nil)
+      when is_binary(key) or is_atom(key) do
+    key = String.downcase(to_string(key))
+    Map.get(message.metadata, key, default)
   end
 
   def meta_put(message = %__MODULE__{}, key, value) when is_binary(key) or is_atom(key) do
+    key = String.downcase(to_string(key))
     metadata = Map.put(message.metadata, key, value)
     %{message | metadata: metadata}
   end
 
   def meta_put_new(message = %__MODULE__{}, key, value) when is_binary(key) or is_atom(key) do
+    key = String.downcase(to_string(key))
     metadata = Map.put_new(message.metadata, key, value)
     %{message | metadata: metadata}
+  end
+
+  def meta_merge(message = %__MODULE__{}, meta = %{}) do
+    metadata = Map.merge(message.metadata, metadata_from_enum(meta))
+    %{message | metadata: metadata}
+  end
+
+  defp metadata_from_enum(enum) do
+    Map.new(enum, fn
+      {k, v} when is_binary(k) ->
+        {String.downcase(k), v}
+
+      {k, v} when is_atom(k) ->
+        {String.downcase(Atom.to_string(k)), v}
+    end)
   end
 end
