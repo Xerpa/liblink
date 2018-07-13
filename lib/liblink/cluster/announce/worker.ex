@@ -17,6 +17,7 @@ defmodule Liblink.Cluster.Announce.Worker do
   alias Liblink.Socket
   alias Liblink.Keyword
   alias Liblink.Socket.Device
+  alias Liblink.Cluster.Naming
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Monitor
   alias Liblink.Data.Cluster.Announce
@@ -38,7 +39,8 @@ defmodule Liblink.Cluster.Announce.Worker do
     endpoint = Random.random_tcp_endpoint("0.0.0.0")
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
     service_id = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
-    service_name = cluster.id
+    # XXX: change this if there are more protocols
+    service_name = Naming.service_name(cluster, :request_response)
 
     case Socket.open(:router, "@" <> endpoint) do
       {:ok, device} ->

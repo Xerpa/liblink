@@ -21,6 +21,7 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
   alias Liblink.Data.Cluster.Exports
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Data.Consul.Config
+  alias Liblink.Cluster.Naming
   alias Liblink.Cluster.Announce.Worker
   alias Liblink.Network.Consul
 
@@ -63,7 +64,7 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
       assert env.worker.cluster == env.cluster
       assert env.worker.socket
       assert is_integer(env.worker.service0.port)
-      assert env.cluster.id == env.worker.service0.name
+      assert Naming.service_name(env.cluster, :request_response) == env.worker.service0.name
       assert is_nil(env.worker.service)
       assert 1 == Enum.count(env.worker.service0.checks)
     end
@@ -72,7 +73,7 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
       [cluster_service] = env.worker.cluster.announce.services
       new_state = Worker.exec(env.worker)
       service_id = new_state.service.id
-      service_name = env.worker.cluster.id
+      service_name = Naming.service_name(env.worker.cluster, :request_response)
       service_tags = [cluster_service.id]
       service_port = Device.bind_port(env.worker.socket)
       announce_meta = env.worker.cluster.announce.metadata
