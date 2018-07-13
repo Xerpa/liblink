@@ -66,21 +66,18 @@ defmodule Liblink.Cluster.DatabaseTest do
     assert :ok == Database.put_new(pid, :key, :value)
   end
 
-  test "fetch_async", %{pid: pid} do
-    assert {:ok, tag} = Database.fetch_async(pid, :key)
-    assert_receive {^tag, :error}
+  test "fetch_sync", %{pid: pid} do
+    assert :error = Database.fetch_sync(pid, :key)
   end
 
-  test "fetch_async after put_async", %{pid: pid} do
+  test "fetch_sync after put_async", %{pid: pid} do
     assert :ok == Database.put_async(pid, :key, :value)
-    assert {:ok, tag} = Database.fetch_async(pid, :key)
-    assert_receive {^tag, {:ok, :value}}
+    assert {:ok, :value} = Database.fetch_sync(pid, :key)
   end
 
-  test "fetch_async after del_async", %{pid: pid} do
+  test "fetch_sync after del_async", %{pid: pid} do
     assert :ok == Database.put_async(pid, :key, :value)
     assert :ok == Database.del_async(pid, :key)
-    assert {:ok, tag} = Database.fetch_async(pid, :key)
-    assert_receive {^tag, :error}
+    assert :error = Database.fetch_sync(pid, :key)
   end
 end

@@ -56,8 +56,7 @@ defmodule Liblink.Cluster.AnnounceTest do
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, tag} = Database.fetch_async(pid, {:announce, cluster.id})
-      assert_receive {^tag, {:ok, announce_pid}}
+      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
       assert Process.alive?(announce_pid)
     end
 
@@ -66,8 +65,7 @@ defmodule Liblink.Cluster.AnnounceTest do
       database: {pid, tid}
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, tag} = Database.fetch_async(pid, {:announce, cluster.id})
-      assert_receive {^tag, {:ok, announce_pid}}
+      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
       ref = Process.monitor(announce_pid)
 
       assert :ok == Mutation.del_cluster(pid, cluster.id)

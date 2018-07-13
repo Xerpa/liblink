@@ -87,7 +87,6 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
   end
 
   defp db_yield(pid) do
-    Database.fetch_async(pid, :poll)
-    assert_receive _
+    Database.fetch_sync(pid, :any)
   end
 end

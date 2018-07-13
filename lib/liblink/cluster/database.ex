@@ -5,55 +5,16 @@ defmodule Liblink.Cluster.Database do
   alias Liblink.Cluster.Database.Hook
   alias Liblink.Cluster.Database.UniqConstraint
 
+  @type t :: pid | __MODULE__
+
+  @type tid :: :ets.tid()
+
+  @typep state_t :: %{tid: tid, hooks: [Hook.t()]}
+
+  @spec start_link([{:hooks, [Hook.t()]}], [{:name, atom}]) ::
+          {:ok, pid} | {:error, {:already_started, pid}}
   def start_link(args, opts \\ []) do
     GenServer.start_link(__MODULE__, args, opts)
-  end
-
-  def put_async(pid, key, val) do
-    GenServer.cast(pid, {:put, key, val, []})
-  end
-
-  def del_async(pid, key) do
-    GenServer.cast(pid, {:del, key, []})
-  end
-
-  def fetch_async(pid, key) do
-    tag = :erlang.make_ref()
-
-    with :ok <- GenServer.cast(pid, {:fetch, key, {tag, self()}}) do
-      {:ok, tag}
-    end
-  end
-
-  def put(pid, key, val, timeout \\ 1_000) do
-    GenServer.call(pid, {:put, key, val, []}, timeout)
-  end
-
-  def put_new(pid, key, val, timeout \\ 1_000) do
-    hooks = [UniqConstraint]
-    GenServer.call(pid, {:put, key, val, hooks}, timeout)
-  end
-
-  def del(pid, key, timeout \\ 1_000) do
-    GenServer.call(pid, {:del, key, []}, timeout)
-  end
-
-  def get_tid(pid, timeout \\ 1_000) do
-    GenServer.call(pid, {:get, :tid}, timeout)
-  end
-
-  def get(tid, key, default \\ nil) when is_reference(tid) do
-    case fetch(tid, key) do
-      :error -> default
-      {:ok, val} -> val
-    end
-  end
-
-  def fetch(tid, key) when is_reference(tid) do
-    case :ets.lookup(tid, key) do
-      [{^key, val}] -> {:ok, val}
-      [] -> :error
-    end
   end
 
   @impl true
@@ -63,6 +24,60 @@ defmodule Liblink.Cluster.Database do
     tid = :ets.new(__MODULE__, [:protected, read_concurrency: true])
 
     {:ok, %{tid: tid, hooks: hooks}}
+  end
+
+  @spec put_async(t, term, term) :: :ok
+  def put_async(pid, key, val) do
+    GenServer.cast(pid, {:put, key, val, []})
+  end
+
+  @spec del_async(t, term) :: :ok
+  def del_async(pid, key) do
+    GenServer.cast(pid, {:del, key, []})
+  end
+
+  @spec fetch_sync(t, term) :: {:ok, term} | :error
+  def fetch_sync(pid, key, timeout \\ 1_000) do
+    GenServer.call(pid, {:fetch, key}, timeout)
+  end
+
+  @spec put(t, term, term) :: :ok | :error
+  @spec put(t, term, term, timeout) :: :ok | :error
+  def put(pid, key, val, timeout \\ 1_000) do
+    GenServer.call(pid, {:put, key, val, []}, timeout)
+  end
+
+  @spec put_new(t, term, term) :: :ok | :error
+  @spec put_new(t, term, term, timeout) :: :ok | :error
+  def put_new(pid, key, val, timeout \\ 1_000) do
+    hooks = [UniqConstraint]
+    GenServer.call(pid, {:put, key, val, hooks}, timeout)
+  end
+
+  @spec del(t, term, timeout) :: :ok | :error
+  def del(pid, key, timeout \\ 1_000) do
+    GenServer.call(pid, {:del, key, []}, timeout)
+  end
+
+  @spec get_tid(t, timeout) :: {:ok, tid}
+  def get_tid(pid, timeout \\ 1_000) do
+    GenServer.call(pid, {:get, :tid}, timeout)
+  end
+
+  @spec get(tid, term, term) :: term
+  def get(tid, key, default \\ nil) do
+    case fetch(tid, key) do
+      :error -> default
+      {:ok, val} -> val
+    end
+  end
+
+  @spec fetch(tid, term) :: {:ok, term} | term
+  def fetch(tid, key) do
+    case :ets.lookup(tid, key) do
+      [{^key, val}] -> {:ok, val}
+      [] -> :error
+    end
   end
 
   @impl true
@@ -80,6 +95,9 @@ defmodule Liblink.Cluster.Database do
 
         {:get, {:key, key}} ->
           get(state.tid, key)
+
+        {:fetch, key} ->
+          fetch(state.tid, key)
       end
 
     {:reply, result, state}
@@ -93,14 +111,12 @@ defmodule Liblink.Cluster.Database do
 
       {:del, key, hooks} ->
         del_value(state, key, hooks)
-
-      {:fetch, key, {tag, from}} ->
-        send(from, {tag, fetch(state.tid, key)})
     end
 
     {:noreply, state}
   end
 
+  @spec put_value(state_t, term, term, [Hook.t()]) :: :ok | :error
   defp put_value(state, key, next_value, hooks) do
     tid = state.tid
     hooks = hooks ++ state.hooks
@@ -113,6 +129,7 @@ defmodule Liblink.Cluster.Database do
     end
   end
 
+  @spec del_value(state_t, term, [Hook.t()]) :: :ok | :error
   defp del_value(state, key, hooks) do
     tid = state.tid
     hooks = hooks ++ state.hooks
