@@ -17,6 +17,7 @@ defmodule Liblink.Data.ClusterTest do
 
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Announce
+  alias Liblink.Data.Cluster.Discover
 
   describe "new" do
     test "required fields" do
@@ -39,6 +40,7 @@ defmodule Liblink.Data.ClusterTest do
 
     test "success case" do
       assert {:ok, %Cluster{}} = Cluster.new(id: "liblink", announce: %Announce{})
+      assert {:ok, %Cluster{}} = Cluster.new(id: "liblink", discover: %Discover{})
     end
   end
 end
