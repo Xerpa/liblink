@@ -14,18 +14,19 @@
 
 defmodule Liblink.Data.Cluster.Discover do
   alias Liblink.Data.Keyword
+  alias Liblink.Data.Cluster.Service
 
   import Liblink.Data.Macros
 
-  defstruct [:restrict]
+  defstruct [:restrict, :protocols]
 
   @type t :: %__MODULE__{}
 
   @type metadata :: %{optional(binary) => binary}
 
   @type option ::
-          {:retrict, (metadata -> boolean)}
-          | {:protocols, [Liblink.Data.Cluster.Service.protocol()]}
+          {:retrict, (Service.protocol(), metadata -> boolean)}
+          | {:protocols, [Service.protocol()]}
 
   @spec new!([option]) :: t
   def_bang(:new, 1)
@@ -35,11 +36,15 @@ defmodule Liblink.Data.Cluster.Discover do
           {:ok, t}
           | Keyword.fetch_error()
   def new(options \\ []) when is_list(options) do
-    with {:ok, restrict} <- Keyword.fetch_function(options, :restrict, fn _ -> true end),
+    restrict_default = fn protocol, metadata ->
+      protocol in [:request_response] and is_map(metadata)
+    end
+
+    with {:ok, restrict} <- Keyword.fetch_function(options, :restrict, restrict_default),
          {:ok, protocols} <- Keyword.fetch_list(options, :protocols),
          {_, _, true} <- {:protocols, protocols, Enum.all?(protocols, &valid_protocol?/1)},
-         {_, _, true} <- {:restrict, restrict, is_function(restrict, 1)} do
-      {:ok, %__MODULE__{restrict: restrict}}
+         {_, _, true} <- {:restrict, restrict, is_function(restrict, 2)} do
+      {:ok, %__MODULE__{restrict: restrict, protocols: protocols}}
     else
       {key, value, false} ->
         {:error, {key, {:value, value}}}

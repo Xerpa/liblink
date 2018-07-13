@@ -22,8 +22,9 @@ defmodule Liblink.Data.Cluster.DiscoverTest do
     property "default discover accept all metadata" do
       discover = Discover.new!(protocols: [:request_response])
 
-      check all metadata <- map_of(binary(), binary()) do
-        assert discover.restrict.(metadata)
+      check all protocol <- member_of([:request_response]),
+                metadata <- map_of(binary(), binary()) do
+        assert discover.restrict.(protocol, metadata)
       end
     end
   end

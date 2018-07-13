@@ -80,6 +80,11 @@ defmodule Liblink.Cluster.Database do
     end
   end
 
+  @spec select(tid, :ets.match_spec()) :: term
+  def select(tid, pattern) do
+    :ets.select(tid, pattern)
+  end
+
   @impl true
   def handle_call(message, _from, state) do
     result =
