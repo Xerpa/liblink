@@ -92,11 +92,11 @@ defmodule Liblink.Cluster.Announce.Worker do
         :error -> state
       end
 
-    if state.service do
-      check_pass(state, state.service)
+    case state.service && check_pass(state, state.service) do
+      nil -> state
+      :ok -> state
+      :error -> %{state | service: nil}
     end
-
-    state
   end
 
   @spec service_register(t, Service.t()) :: {:ok, Service.t()} | :error
@@ -106,6 +106,12 @@ defmodule Liblink.Cluster.Announce.Worker do
     else
       case Agent.service_register(state.consul, service) do
         {:ok, %{status: 200}} ->
+          _ =
+            Logger.info(
+              "successfully registered service on consul",
+              metadata: [data: [service: service.name]]
+            )
+
           {:ok, service}
 
         error ->
