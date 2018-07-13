@@ -29,13 +29,13 @@ defmodule Liblink.Cluster.FoldServerTest do
     {:ok, [proc: proc]}
   end
 
-  test "invokes init callback in the init context", %{proc: proc} do
+  test "invokes init hook in the init context", %{proc: proc} do
     pid = self()
 
     {:ok, pid} =
       FoldServer.start_link(
         proc: proc,
-        init_callback: fn -> send(pid, {:init, self()}) end,
+        init_hook: fn -> send(pid, {:init, self()}) end,
         interval_in_ms: 10_000
       )
 
@@ -43,23 +43,20 @@ defmodule Liblink.Cluster.FoldServerTest do
   end
 
   test "invokes exec before first timer", %{proc: proc} do
-    {:ok, _pid} =
-      FoldServer.start_link(proc: proc, init_callback: fn -> nil end, interval_in_ms: 10_000)
+    {:ok, _pid} = FoldServer.start_link(proc: proc, interval_in_ms: 10_000)
 
     assert_receive {:cont, 1}
   end
 
   test "accumulates data on exec", %{proc: proc} do
-    {:ok, _pid} =
-      FoldServer.start_link(proc: proc, init_callback: fn -> nil end, interval_in_ms: 10)
+    {:ok, _pid} = FoldServer.start_link(proc: proc, interval_in_ms: 10)
 
     assert_receive {:cont, 1}
     assert_receive {:cont, 2}
   end
 
   test "invokes halt on termination", %{proc: proc} do
-    {:ok, pid} =
-      FoldServer.start_link(proc: proc, init_callback: fn -> nil end, interval_in_ms: 10_000)
+    {:ok, pid} = FoldServer.start_link(proc: proc, interval_in_ms: 10_000)
 
     tag = Process.monitor(pid)
 
@@ -70,8 +67,7 @@ defmodule Liblink.Cluster.FoldServerTest do
   end
 
   test "halt message terminates the server", %{proc: proc} do
-    {:ok, pid} =
-      FoldServer.start_link(proc: proc, init_callback: fn -> nil end, interval_in_ms: 10_000)
+    {:ok, pid} = FoldServer.start_link(proc: proc, interval_in_ms: 10_000)
 
     tag = Process.monitor(pid)
 

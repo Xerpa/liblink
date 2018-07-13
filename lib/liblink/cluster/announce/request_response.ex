@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Cluster.Announce.Worker do
+defmodule Liblink.Cluster.Announce.RequestResponse do
   alias Liblink.Random
   alias Liblink.Socket
   alias Liblink.Keyword
@@ -39,7 +39,6 @@ defmodule Liblink.Cluster.Announce.Worker do
     endpoint = Random.random_tcp_endpoint("0.0.0.0")
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
     service_id = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
-    # XXX: change this if there are more protocols
     service_name = Naming.service_name(cluster, :request_response)
 
     case Socket.open(:router, "@" <> endpoint) do
@@ -84,7 +83,9 @@ defmodule Liblink.Cluster.Announce.Worker do
   def exec(state) do
     tags =
       state.cluster.announce.services
-      |> Enum.filter(&Monitor.eval(&1.monitor))
+      |> Enum.filter(fn service ->
+        service.protocol == :request_response and Monitor.eval(service.monitor)
+      end)
       |> Enum.map(& &1.id)
       |> Enum.sort()
 

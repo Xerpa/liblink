@@ -21,7 +21,7 @@ defmodule Liblink.Cluster.Announce do
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.FoldServer
   alias Liblink.Cluster.ClusterSupervisor
-  alias Liblink.Cluster.Announce.Worker
+  alias Liblink.Cluster.Announce.RequestResponse
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
 
@@ -32,42 +32,43 @@ defmodule Liblink.Cluster.Announce do
         with {:cluster, _} <- key,
              cluster = %Cluster{announce: %Announce{}} <- value,
              {:ok, config} <- Config.new(),
-             {:ok, worker} <- Worker.new(Consul.client(config), cluster) do
-          announce_cluster(pid, worker)
+             {:ok, worker} <- RequestResponse.new(Consul.client(config), cluster) do
+          proc = %{
+            exec: &RequestResponse.exec/1,
+            halt: &RequestResponse.halt/1,
+            data: worker
+          }
+
+          announce_cluster(pid, cluster.id, proc, :request_response)
         end
 
       {:del, key, value} ->
         with {:cluster, cluster_id} <- key,
              %Cluster{announce: %Announce{}} <- value do
-          suppress_cluster(pid, tid, cluster_id)
+          suppress_cluster(pid, tid, cluster_id, :request_response)
         end
     end
   end
 
-  @spec suppress_cluster(pid, :ets.tid(), term) :: :ok
-  defp suppress_cluster(pid, tid, cluster_id) do
-    with {:ok, announce_pid} <- Query.find_cluster_announce(tid, cluster_id) do
+  @spec suppress_cluster(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
+  defp suppress_cluster(pid, tid, cluster_id, protocol) do
+    with {:ok, announce_pid} <- Query.find_cluster_announce(tid, cluster_id, protocol) do
       FoldServer.halt(announce_pid)
-      Mutation.del_cluster_announce(pid, cluster_id)
+      Mutation.del_cluster_announce(pid, cluster_id, protocol)
     end
 
     :ok
   end
 
-  @spec announce_cluster(pid, Woker.t()) :: {:ok, pid}
-  defp announce_cluster(pid, worker) do
-    proc = %{
-      exec: &Worker.exec/1,
-      halt: &Worker.halt/1,
-      data: worker
-    }
-
-    init_callback = fn ->
-      :ok = Mutation.add_cluster_announce(pid, worker.cluster.id, self())
+  @spec announce_cluster(Database.t(), Cluster.id(), FoldServer.proc(), Service.protocol()) ::
+          {:ok, pid}
+  defp announce_cluster(pid, cluster_id, proc, protocol) do
+    init_hook = fn ->
+      :ok = Mutation.add_cluster_announce(pid, cluster_id, protocol, self())
     end
 
     {:ok, _pid} =
-      {FoldServer, [proc: proc, init_callback: init_callback, interval_in_ms: 1_000]}
+      {FoldServer, [proc: proc, interval_in_ms: 1_000, init_hook: init_hook]}
       |> Supervisor.child_spec(shutdown: 10_000, restart: :transient)
       |> ClusterSupervisor.start_child()
   end

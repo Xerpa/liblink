@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Cluster.Announce.WorkerTest do
+defmodule Liblink.Cluster.Announce.RequestResponseTest do
   use ExUnit.Case, async: false
 
   alias Liblink.Socket.Device
@@ -22,7 +22,7 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Data.Consul.Config
   alias Liblink.Cluster.Naming
-  alias Liblink.Cluster.Announce.Worker
+  alias Liblink.Cluster.Announce.RequestResponse
   alias Liblink.Network.Consul
 
   @moduletag capture_log: true
@@ -49,12 +49,12 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
             )
         )
 
-      {:ok, worker} = Worker.new(consul, cluster)
+      {:ok, worker} = RequestResponse.new(consul, cluster)
 
       :ok = Test.Liblink.Consul.flush_services(consul)
 
       on_exit(fn ->
-        Worker.halt(worker)
+        RequestResponse.halt(worker)
       end)
 
       {:ok, [consul: consul, cluster: cluster, worker: worker]}
@@ -71,7 +71,7 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
 
     test "service is announced on consul on exec", env do
       [cluster_service] = env.worker.cluster.announce.services
-      new_state = Worker.exec(env.worker)
+      new_state = RequestResponse.exec(env.worker)
       service_id = new_state.service.id
       service_name = Naming.service_name(env.worker.cluster, :request_response)
       service_tags = [cluster_service.id]
@@ -94,15 +94,15 @@ defmodule Liblink.Cluster.Announce.WorkerTest do
     end
 
     test "halt deregister service", env do
-      Worker.exec(env.worker)
-      Worker.halt(env.worker)
+      RequestResponse.exec(env.worker)
+      RequestResponse.halt(env.worker)
 
       assert {:ok, reply} = Consul.Agent.service(env.consul, env.worker.service0.id)
       assert %{} == reply.body
     end
 
     test "service check is passing after exec", env do
-      new_state = Worker.exec(env.worker)
+      new_state = RequestResponse.exec(env.worker)
       [check] = new_state.service.checks
       {:ok, reply} = Consul.Health.service(env.consul, new_state.service.name)
 

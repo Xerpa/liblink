@@ -54,11 +54,12 @@ defmodule Liblink.Cluster.AnnounceTest do
     end
 
     test "starts then announce worker when a new cluster is registered", %{
-      database: {pid, _tid},
+      database: {pid, tid},
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
+      db_yield(pid)
+      assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       assert Process.alive?(announce_pid)
     end
 
@@ -67,13 +68,18 @@ defmodule Liblink.Cluster.AnnounceTest do
       database: {pid, tid}
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
+      db_yield(pid)
+      assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       ref = Process.monitor(announce_pid)
 
       assert :ok == Mutation.del_cluster(pid, cluster.id)
       assert_receive {:DOWN, ^ref, :process, _object, _reason}
 
-      assert :error == Query.find_cluster_announce(tid, cluster.id)
+      assert :error == Query.find_cluster_announce(tid, cluster.id, :request_response)
     end
+  end
+
+  defp db_yield(pid) do
+    Database.fetch_sync(pid, :yield)
   end
 end
