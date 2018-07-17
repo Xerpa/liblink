@@ -69,6 +69,20 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
     end
   end
 
+  @spec devices(state_t) :: {:reply, [Device.t()], state_t}
+  def devices(state) do
+    {:reply, state.devices, state}
+  end
+
+  @spec halt(state_t) :: {:stop, :normal, state_t}
+  def halt(state) do
+    Enum.each(state.devices, fn device ->
+      _ = Socket.halt_consumer(device)
+    end)
+
+    {:stop, :normal, %{state | devices: MapSet.new()}}
+  end
+
   @spec del_device(Device.t(), state_t) :: {:reply, :ok, state_t}
   def del_device(device = %Device{}, state) do
     if MapSet.member?(state.devices, device) do
