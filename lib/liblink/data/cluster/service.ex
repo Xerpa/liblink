@@ -21,10 +21,12 @@ defmodule Liblink.Data.Cluster.Service do
 
   @type t :: %__MODULE__{}
 
+  @type id :: String.t()
+
   @type protocol :: :request_response
 
   @type option ::
-          {:id, String.t()}
+          {:id, id}
           | {:protocol, protocol}
           | {:exports, Exports.t()}
           | {:monitor, Monitor.t()}
