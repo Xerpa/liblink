@@ -65,6 +65,9 @@ defmodule Liblink.Cluster.Protocol.Dealer do
       try do
         GenServer.call(dealer, {:sendmsg, payload, self(), timeout_in_ms})
       catch
+        :exit, {:noproc, {GenServer, :call, _}} ->
+          {:error, :io_error}
+
         :exit, {:timeout, {GenServer, :call, _}} ->
           {:error, :timeout}
       end
