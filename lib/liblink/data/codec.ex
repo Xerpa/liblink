@@ -24,9 +24,10 @@ defmodule Liblink.Data.Codec do
     case message do
       [@v0, payload] ->
         try do
-          {:ok, :erlang.binary_to_term(payload, [:safe])}
+          {:ok, :erlang.binary_to_term(payload, [])}
         rescue
-          ArgumentError -> :error
+          ArgumentError ->
+            :error
         end
 
       _otherwise ->
