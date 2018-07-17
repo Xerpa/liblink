@@ -19,7 +19,15 @@ defmodule Liblink do
 
   def start(_type, _args) do
     monitor = Supervisor.child_spec(Liblink.Socket.Monitor, shutdown: 10_000)
-    db_hooks = [Liblink.Cluster.Announce]
+
+    db_hooks = [
+      Liblink.Cluster.Announce,
+      Liblink.Cluster.Discover,
+      Liblink.Cluster.Discover.ClientDevice,
+      Liblink.Cluster.Discover.Client,
+      Liblink.Cluster.Discover.Device
+    ]
+
     database = Liblink.Cluster.Database.child_spec(hooks: db_hooks)
     cluster_supervisor = Supervisor.child_spec({Liblink.Cluster.ClusterSupervisor, []}, [])
 
