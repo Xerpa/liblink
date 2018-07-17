@@ -24,6 +24,7 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
   alias Liblink.Data.Consul.Service
   alias Liblink.Data.Consul.TTLCheck
   alias Liblink.Network.Consul.Agent
+  alias Liblink.Cluster.Protocol.Router
 
   import Liblink.Data.Macros
 
@@ -58,7 +59,9 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
                  meta: metadata,
                  port: Device.bind_port(device),
                  checks: [ttlcheck]
-               ) do
+               ),
+             {:ok, router} <- Router.new(cluster.id, cluster.announce.services),
+             :ok <- Socket.consume(device, {Router, :handler, [device, router]}) do
           {:ok,
            %{socket: device, consul: consul, cluster: cluster, service0: service, service: nil}}
         else
