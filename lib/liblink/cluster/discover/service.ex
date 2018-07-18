@@ -24,6 +24,7 @@ defmodule Liblink.Cluster.Discover.Service do
 
   @type t :: map
 
+  @spec new(Database.t(), Tesla.Client.t(), Cluster.t(), Service.protocol()) :: {:ok, t}
   def new(pid, consul = %Tesla.Client{}, cluster = %Cluster{discover: %Discover{}}, protocol) do
     {:ok, %{database: pid, consul: consul, cluster: cluster, protocol: protocol}}
   end
@@ -39,18 +40,19 @@ defmodule Liblink.Cluster.Discover.Service do
     protocol = state.protocol
     service_name = Naming.service_name(cluster, protocol)
 
-    case Consul.Health.service(state.consul, service_name, state: :passing) do
-      {:ok, %{status: 200, body: services}} when is_list(services) ->
-        handle_service(state, services)
+    _ =
+      case Consul.Health.service(state.consul, service_name, state: "passing") do
+        {:ok, %{status: 200, body: services}} when is_list(services) ->
+          handle_service(state, services)
 
-      reply ->
-        _ = Logger.warn("error reading services from consul", metadata: [reply: reply])
-    end
+        _reply ->
+          _ = Logger.warn("error reading services from consul")
+      end
 
     state
   end
 
-  @spec handle_service(Cluster.t(), list) :: :ok
+  @spec handle_service(t, [map]) :: :ok
   defp handle_service(state, reply) when is_list(reply) do
     cluster = state.cluster
     protocol = state.protocol
@@ -76,10 +78,13 @@ defmodule Liblink.Cluster.Discover.Service do
     end
   end
 
+  @spec accept_service?(RemoteService.t()) :: boolean
   defp accept_service?(remote_service) do
     remote_service.cluster.discover.restrict.(remote_service.protocol, remote_service.metadata)
   end
 
+  @spec build_remote_service(Cluster.t(), Service.protocol(), map) ::
+          {:ok, RemoteService.t()} | :error
   defp build_remote_service(cluster, protocol, health) do
     with true <- is_map(health),
          {:ok, node} when is_map(node) <- Map.fetch(health, "Node"),
@@ -127,6 +132,7 @@ defmodule Liblink.Cluster.Discover.Service do
     end
   end
 
+  @spec compute_status([map]) :: :critical | :passing
   defp compute_status(checks) do
     Enum.reduce(checks, :passing, fn check, status ->
       if is_map(check) do

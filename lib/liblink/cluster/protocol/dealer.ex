@@ -25,6 +25,8 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   require Logger
 
+  @type t :: pid
+
   @spec start_link([Impl.option() | {:init_hook, (() -> term)}]) :: {:ok, pid}
   def start_link(options \\ []) do
     GenServer.start_link(__MODULE__, options)
@@ -53,7 +55,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
     GenServer.cast(pid, :halt)
   end
 
-  @spec request(pid, Message.t(), timeout) ::
+  @spec request(t, Message.t(), [Impl.sendmsg_opt()]) ::
           {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
   def request(dealer, message = %Message{}, opts \\ [])
       when is_pid(dealer) and is_list(opts) do

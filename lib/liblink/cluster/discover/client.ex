@@ -15,10 +15,13 @@
 defmodule Liblink.Cluster.Discover.Client do
   use Liblink.Cluster.Database.Hook
 
+  alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
   alias Liblink.Cluster.Protocol.Dealer
   alias Liblink.Cluster.ClusterSupervisor
+  alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service
 
   @impl true
   def after_hook(pid, tid, event) do
@@ -34,6 +37,7 @@ defmodule Liblink.Cluster.Discover.Client do
     end
   end
 
+  @spec del_client(Databse.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
   defp del_client(pid, tid, cluster_id, protocol) do
     with {:ok, pid} = Query.find_discover_client(tid, cluster_id, protocol) do
       Dealer.halt(pid)
@@ -42,6 +46,7 @@ defmodule Liblink.Cluster.Discover.Client do
     Mutation.del_discover_client(pid, cluster_id, protocol)
   end
 
+  @spec add_client(Database.t(), Cluster.id(), Service.protocol()) :: :ok
   defp add_client(pid, cluster_id, protocol) do
     init_hook = fn ->
       :ok = Mutation.add_discover_client(pid, cluster_id, protocol, self())
@@ -56,5 +61,7 @@ defmodule Liblink.Cluster.Discover.Client do
 
         pid
     end
+
+    :ok
   end
 end

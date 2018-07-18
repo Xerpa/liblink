@@ -30,7 +30,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
           timeouts: map
         }
 
-  @type send_opt ::
+  @type sendmsg_opt ::
           {:timeout_in_ms, timeout}
           | {:restrict_fn, (MapSet.t(Device.t()) -> MapSet.t(Device.t()))}
 
@@ -94,7 +94,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
     {:reply, :ok, state}
   end
 
-  @spec sendmsg(iodata, pid, [send_opt], state_t) ::
+  @spec sendmsg(iodata, pid, [sendmsg_opt], state_t) ::
           {:reply, {:ok, binary} | {:error, :no_connection}, state_t}
   def sendmsg(message, from, opts, state)
       when is_iodata(message) and is_pid(from) and is_list(opts) do
@@ -103,9 +103,15 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
     payload = [tag | List.wrap(message)]
 
     timeout =
-      case Keyword.fetch_integer(opts, :timeout_in_ms) do
-        {:ok, timeout} -> timeout
-        _error -> 1_000
+      case Keyword.fetch(opts, :timeout_in_ms) do
+        {:ok, timeout} when is_integer(timeout) ->
+          timeout
+
+        {:ok, :infinity} ->
+          :infinity
+
+        _error ->
+          1_000
       end
 
     restrict_fn =

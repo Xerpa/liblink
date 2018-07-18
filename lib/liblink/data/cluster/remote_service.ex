@@ -58,6 +58,7 @@ defmodule Liblink.Data.Cluster.RemoteService do
     end
   end
 
+  @spec connect_endpoint(Service.protocol(), String.t(), non_neg_integer()) :: String.t() | nil
   defp connect_endpoint(protocol, address, port) do
     case protocol do
       :request_response ->

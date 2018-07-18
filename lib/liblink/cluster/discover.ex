@@ -53,7 +53,7 @@ defmodule Liblink.Cluster.Discover do
     end
   end
 
-  # @spec suppress_cluster(pid, :ets.tid(), term) :: :ok
+  @spec unsubscribe(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
   defp unsubscribe(pid, tid, cluster_id, protocol) do
     with {:ok, discover_pid} <- Query.find_cluster_discover(tid, cluster_id, protocol) do
       FoldServer.halt(discover_pid)
@@ -63,7 +63,7 @@ defmodule Liblink.Cluster.Discover do
     :ok
   end
 
-  # @spec announce_cluster(pid, Woker.t()) :: {:ok, pid}
+  @spec subscribe(Database.t(), Cluster.id(), map, Service.protocol()) :: :ok
   defp subscribe(pid, cluster_id, proc, protocol) do
     init_hook = fn ->
       :ok = Mutation.add_cluster_discover(pid, cluster_id, protocol, self())
@@ -73,5 +73,7 @@ defmodule Liblink.Cluster.Discover do
       {FoldServer, [proc: proc, init_hook: init_hook, interval_in_ms: 1_000]}
       |> Supervisor.child_spec(shutdown: 10_000, restart: :transient)
       |> ClusterSupervisor.start_child()
+
+    :ok
   end
 end

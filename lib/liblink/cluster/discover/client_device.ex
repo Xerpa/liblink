@@ -53,9 +53,12 @@ defmodule Liblink.Cluster.Discover.ClientDevice do
     end
   end
 
+  @spec safe_call((() -> term)) :: :ok | :error
   defp safe_call(call) do
     try do
       call.()
+
+      :ok
     catch
       :exit, {:noproc, {GenServer, :call, _}} ->
         _ = Logger.warn("could not attach device to dealer: noproc")
