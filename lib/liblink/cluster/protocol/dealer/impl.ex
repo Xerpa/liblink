@@ -80,10 +80,6 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
 
   @spec halt(state_t) :: {:stop, :normal, state_t}
   def halt(state) do
-    Enum.each(state.devices, fn device ->
-      _ = Socket.halt_consumer(device)
-    end)
-
     {:stop, :normal, %{state | devices: MapSet.new()}}
   end
 
