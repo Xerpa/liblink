@@ -207,14 +207,23 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
     end
 
     test "sendmsg register the request and timeout", %{state: state} do
-      assert {:reply, {:ok, tag}, state} = Impl.sendmsg("payload", self(), 1_000, state)
+      assert {:reply, {:ok, tag}, state} =
+               Impl.sendmsg("payload", self(), [timeout_in_ms: 1_000], state)
+
       assert %{^tag => _request} = state.requests
       assert %{^tag => _timeout} = state.timeouts
     end
 
     test "sendmsg include tag in the message", %{state: state} do
-      assert {:reply, {:ok, tag}, _state} = Impl.sendmsg("payload", self(), 1_000, state)
+      assert {:reply, {:ok, tag}, _state} =
+               Impl.sendmsg("payload", self(), [timeout_in_ms: 1_000], state)
+
       assert_receive {Liblink.Socket, :data, [_, ^tag, "payload"]}
+    end
+
+    test "sendmsg uses restrict_fn to select devices", %{state: state} do
+      assert {:reply, {:error, :no_connection}, _state} =
+               Impl.sendmsg("payload", self(), [restrict_fn: fn _ -> MapSet.new() end], state)
     end
   end
 end

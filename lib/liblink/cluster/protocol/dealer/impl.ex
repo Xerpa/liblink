@@ -30,6 +30,10 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
           timeouts: map
         }
 
+  @type send_opt ::
+          {:timeout_in_ms, timeout}
+          | {:restrict_fn, (MapSet.t(Device.t()) -> MapSet.t(Device.t()))}
+
   @type option :: {:balance, :round_robin}
 
   @spec new([option]) ::
@@ -94,28 +98,40 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
     {:reply, :ok, state}
   end
 
-  @spec sendmsg(iodata, pid, timeout, state_t) ::
+  @spec sendmsg(iodata, pid, [send_opt], state_t) ::
           {:reply, {:ok, binary} | {:error, :no_connection}, state_t}
-  def sendmsg(message, from, timeout_in_ms, state)
-      when is_iodata(message) and is_pid(from) and is_timeout(timeout_in_ms) do
+  def sendmsg(message, from, opts, state)
+      when is_iodata(message) and is_pid(from) and is_list(opts) do
     tag = new_tag(state)
 
     payload = [tag | List.wrap(message)]
 
-    deadline =
-      if timeout_in_ms == :infinity do
-        :infinity
-      else
-        Timeout.deadline(timeout_in_ms, :millisecond)
+    timeout =
+      case Keyword.fetch_integer(opts, :timeout_in_ms) do
+        {:ok, timeout} -> timeout
+        _error -> 1_000
       end
 
-    case state.balance.(state.devices) do
+    restrict_fn =
+      case Keyword.fetch_function(opts, :restrict_fn) do
+        {:ok, restrict_fn} when is_function(restrict_fn, 1) -> restrict_fn
+        _error -> fn x -> x end
+      end
+
+    deadline =
+      if timeout == :infinity do
+        :infinity
+      else
+        Timeout.deadline(timeout, :millisecond)
+      end
+
+    case state.balance.(restrict_fn.(state.devices)) do
       :error ->
         {:reply, {:error, :no_connection}, state}
 
       {:ok, device} ->
         request_entry = {from, deadline}
-        timeout_entry = max(1, div(timeout_in_ms, timeout_interval()))
+        timeout_entry = max(1, div(timeout, timeout_interval()))
 
         state =
           state

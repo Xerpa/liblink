@@ -55,15 +55,20 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   @spec request(pid, Message.t(), timeout) ::
           {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
-  def request(dealer, message = %Message{}, timeout_in_ms \\ 1_000)
-      when is_pid(dealer) and is_timeout(timeout_in_ms) do
+  def request(dealer, message = %Message{}, opts \\ [])
+      when is_pid(dealer) and is_list(opts) do
     # FIXME: this might actually take ~ (2 * timeout_in_ms)
+    timeout =
+      case Keyword.fetch_integer(opts, :timeout_in_ms) do
+        {:ok, timeout} -> timeout
+        _error -> 1_000
+      end
 
     payload = Message.encode(message)
 
     reply =
       try do
-        GenServer.call(dealer, {:sendmsg, payload, self(), timeout_in_ms})
+        GenServer.call(dealer, {:sendmsg, payload, self(), opts}, timeout)
       catch
         :exit, {:noproc, {GenServer, :call, _}} ->
           {:error, :io_error}
@@ -80,7 +85,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
             reply -> reply
           end
       after
-        timeout_in_ms -> {:error, :timeout}
+        timeout -> {:error, :timeout}
       end
     end
   end
