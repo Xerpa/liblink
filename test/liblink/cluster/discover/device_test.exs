@@ -14,7 +14,6 @@
 
 defmodule Liblink.Cluster.Discover.DeviceTest do
   use ExUnit.Case, async: true
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.RemoteService
@@ -23,9 +22,9 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
   alias Liblink.Cluster.Database.Mutation
 
   setup do
-    {:ok, pid} = Database.start_link([hooks: [__MODULE__, Liblink.Cluster.Discover.Device]], [])
+    {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover.Device]], [])
     {:ok, tid} = Database.get_tid(pid)
-    :ok = init_database(pid)
+    :ok = Database.subscribe(pid, self())
 
     {:ok, [database: {tid, pid}]}
   end
@@ -34,8 +33,8 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
     assert :ok == Mutation.add_remote_services(pid, "cluster_id", :request_response, MapSet.new())
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, _}
-    refute_receive _
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
+    refute_receive {Database, _pid, _tid, _event}
   end
 
   test "creates a device when a new service is registered", %{database: {_tid, pid}} do
@@ -57,10 +56,10 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
              )
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
 
     key = {:discover, :device, "cluster_id", :request_response, service.connect_endpoint}
-    assert_receive {:put, ^key, nil, %Device{}}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, %Device{}}}
   end
 
   test "create a device when service gets updated", %{database: {_tid, pid}} do
@@ -91,10 +90,10 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
              )
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
 
     key = {:discover, :device, "cluster_id", :request_response, service0.connect_endpoint}
-    assert_receive {:put, ^key, nil, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
 
     assert :ok ==
              Mutation.add_remote_services(
@@ -105,10 +104,10 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
              )
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, _, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, _, _}}
 
     key = {:discover, :device, "cluster_id", :request_response, service1.connect_endpoint}
-    assert_receive {:put, ^key, nil, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
   end
 
   test "can insert twice but device won't be recreated", %{database: {_, pid}} do
@@ -138,12 +137,12 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
              )
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, _}
-    assert_receive {:put, ^key, _, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
+    assert_receive {Database, _pid, _tid, {:put, ^key, _, _}}
 
     key = {:discover, :device, "cluster_id", :request_response, service.connect_endpoint}
-    assert_receive {:put, ^key, nil, %Device{}}
-    refute_receive {:put, ^key, _, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, %Device{}}}
+    refute_receive {Database, _pid, _tid, {:put, ^key, _, _}}
   end
 
   test "remove services that are removed", %{database: {_, pid}} do
@@ -173,11 +172,11 @@ defmodule Liblink.Cluster.Discover.DeviceTest do
              )
 
     key = {:discover, :services, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, _}
-    assert_receive {:put, ^key, _, _}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, _}}
+    assert_receive {Database, _pid, _tid, {:put, ^key, _, _}}
 
     key = {:discover, :device, "cluster_id", :request_response, service.connect_endpoint}
-    assert_receive {:put, ^key, nil, %Device{}}
-    assert_receive {:del, ^key, %Device{}}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, %Device{}}}
+    assert_receive {Database, _pid, _tid, {:del, ^key, %Device{}}}
   end
 end

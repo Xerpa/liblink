@@ -14,7 +14,6 @@
 
 defmodule Liblink.Cluster.Discover.ClientDeviceTest do
   use ExUnit.Case, async: true
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Socket
   alias Liblink.Cluster.Protocol.Dealer
@@ -24,13 +23,12 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
   @moduletag capture_log: true
 
   setup do
-    {:ok, pid} =
-      Database.start_link([hooks: [Liblink.Cluster.Discover.ClientDevice, __MODULE__]], [])
+    {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover.ClientDevice]], [])
+    :ok = Database.subscribe(pid, self())
 
     {:ok, dealer} = Dealer.start_link()
 
     {:ok, tid} = Database.get_tid(pid)
-    :ok = init_database(pid)
 
     {:ok, device} = Socket.open(:dealer, ">inproc://#{__MODULE__}")
 
@@ -57,10 +55,10 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
     Mutation.add_discover_client(pid, "cluster_id", :request_response, dealer)
 
     key = {:discover, :device, "cluster_id", :request_response, "endpoint"}
-    assert_receive {:put, ^key, nil, ^device}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^device}}
 
     key = {:discover, :client, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, ^dealer}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^dealer}}
 
     assert MapSet.new([device]) == Dealer.devices(dealer)
   end
@@ -85,11 +83,11 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
     Mutation.add_discover_client(pid, "cluster_id", :request_response, dealer)
 
     key = {:discover, :device, "cluster_id", :request_response, "endpoint"}
-    assert_receive {:put, ^key, nil, ^device}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^device}}
 
     key = {:discover, :client, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, ^dealer}
-    assert_receive {:put, ^key, ^dealer, ^dealer}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^dealer}}
+    assert_receive {Database, _pid, _tid, {:put, ^key, ^dealer, ^dealer}}
 
     assert MapSet.new([device]) == Dealer.devices(dealer)
   end
@@ -102,7 +100,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
     assert :ok == Mutation.add_discover_client(pid, "cluster_id", :request_response, dealer)
 
     key = {:discover, :client, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, ^dealer}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^dealer}}
 
     assert :ok ==
              Mutation.add_discover_device(
@@ -114,7 +112,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
              )
 
     key = {:discover, :device, "cluster_id", :request_response, "endpoint"}
-    assert_receive {:put, ^key, nil, ^device}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^device}}
 
     assert MapSet.new([device]) == Dealer.devices(dealer)
   end
@@ -126,7 +124,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
   } do
     assert :ok == Mutation.add_discover_client(pid, "cluster_id", :request_response, dealer)
     key = {:discover, :client, "cluster_id", :request_response}
-    assert_receive {:put, ^key, nil, ^dealer}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^dealer}}
 
     assert :ok ==
              Mutation.add_discover_device(
@@ -138,7 +136,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
              )
 
     key = {:discover, :device, "cluster_id", :request_response, "endpoint"}
-    assert_receive {:put, ^key, nil, ^device}
+    assert_receive {Database, _pid, _tid, {:put, ^key, nil, ^device}}
 
     assert :ok ==
              Mutation.del_discover_device(
@@ -148,7 +146,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
                "endpoint"
              )
 
-    assert_receive {:del, ^key, ^device}
+    assert_receive {Database, _pid, _tid, {:del, ^key, ^device}}
 
     assert MapSet.new() == Dealer.devices(dealer)
   end

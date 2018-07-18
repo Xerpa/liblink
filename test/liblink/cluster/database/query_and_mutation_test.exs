@@ -14,7 +14,6 @@
 
 defmodule Liblink.Cluster.Database.QueryAndMutationTest do
   use ExUnit.Case, async: true
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Data.Cluster
   alias Liblink.Socket.Device
@@ -23,9 +22,9 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
   alias Liblink.Cluster.Database.Mutation
 
   setup do
-    {:ok, pid} = Database.start_link([hooks: [__MODULE__]], [])
+    {:ok, pid} = Database.start_link([], [])
     {:ok, tid} = Database.get_tid(pid)
-    :ok = init_database(pid)
+    :ok = Database.subscribe(pid, self())
 
     {:ok, [pid: pid, tid: tid]}
   end
@@ -70,7 +69,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
 
     test "find after put", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_cluster_announce(pid, "cluster_id", :request_response, self())
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, self()} == Query.find_cluster_announce(tid, "cluster_id", :request_response)
     end
 
@@ -78,16 +77,16 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
       some_pid = spawn(fn -> nil end)
       assert :ok == Mutation.add_cluster_announce(pid, "cluster_id", :request_response, self())
       assert :ok == Mutation.add_cluster_announce(pid, "cluster_id", :request_response, some_pid)
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, some_pid} == Query.find_cluster_announce(tid, "cluster_id", :request_response)
     end
 
     test "find after del", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_cluster_announce(pid, "cluster_id", :request_response, self())
       assert :ok == Mutation.del_cluster_announce(pid, "cluster_id", :request_response)
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert :error == Query.find_cluster_announce(tid, "cluster_id", :request_response)
     end
   end
@@ -99,7 +98,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
 
     test "find after put", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_cluster_discover(pid, "cluster_id", :request_response, self())
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, self()} == Query.find_cluster_discover(tid, "cluster_id", :request_response)
     end
 
@@ -107,16 +106,16 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
       some_pid = spawn(fn -> nil end)
       assert :ok == Mutation.add_cluster_discover(pid, "cluster_id", :request_response, self())
       assert :ok == Mutation.add_cluster_discover(pid, "cluster_id", :request_response, some_pid)
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, some_pid} == Query.find_cluster_discover(tid, "cluster_id", :request_response)
     end
 
     test "find after del", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_cluster_discover(pid, "cluster_id", :request_response, self())
       assert :ok == Mutation.del_cluster_discover(pid, "cluster_id", :request_response)
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert :error == Query.find_cluster_discover(tid, "cluster_id", :request_response)
     end
   end
@@ -129,7 +128,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
     test "find after put", %{pid: pid, tid: tid} do
       services = MapSet.new([:service])
       assert :ok == Mutation.add_remote_services(pid, "cluster_id", :request_response, services)
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, services} == Query.find_remote_services(tid, "cluster_id", :request_response)
     end
   end
@@ -141,15 +140,15 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
 
     test "find after put", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_discover_client(pid, "cluster_id", :request_response, self())
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, self()} == Query.find_discover_client(tid, "cluster_id", :request_response)
     end
 
     test "find after del", %{pid: pid, tid: tid} do
       assert :ok == Mutation.add_discover_client(pid, "cluster_id", :request_response, self())
       assert :ok == Mutation.del_discover_client(pid, "cluster_id", :request_response)
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert :error == Query.find_discover_client(tid, "cluster_id", :request_response)
     end
   end
@@ -173,7 +172,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
                  %Device{}
                )
 
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
 
       assert {:ok, %Device{}} ==
                Query.find_discover_device(tid, "cluster_id", :request_response, "endpoint")
@@ -189,7 +188,7 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
                  %Device{}
                )
 
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
 
       assert [{"endpoint", %Device{}}] ==
                Query.find_discover_devices(tid, "cluster_id", :request_response)
@@ -214,8 +213,8 @@ defmodule Liblink.Cluster.Database.QueryAndMutationTest do
                  %Device{}
                )
 
-      assert_receive _
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
 
       all_devices = Enum.sort(Query.find_discover_devices(tid, "cluster_id", :request_response))
 

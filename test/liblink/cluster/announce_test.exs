@@ -14,7 +14,6 @@
 
 defmodule Liblink.Cluster.AnnounceTest do
   use ExUnit.Case, async: false
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Cluster
@@ -28,9 +27,9 @@ defmodule Liblink.Cluster.AnnounceTest do
 
   describe "announcing a cluster via database" do
     setup do
-      {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Announce, __MODULE__]], [])
+      {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Announce]], [])
       {:ok, tid} = Database.get_tid(pid)
-      init_database(pid)
+      :ok = Database.subscribe(pid, self())
 
       cluster =
         Cluster.new!(
@@ -60,7 +59,7 @@ defmodule Liblink.Cluster.AnnounceTest do
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       assert Process.alive?(announce_pid)
     end
@@ -70,15 +69,15 @@ defmodule Liblink.Cluster.AnnounceTest do
       database: {pid, tid}
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert_receive _
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       ref = Process.monitor(announce_pid)
 
       assert :ok == Mutation.del_cluster(pid, cluster.id)
-      assert_receive {:del, _key, _val}
+      assert_receive {Database, _pid, _tid, {:del, _key, _val}}
       assert_receive {:DOWN, ^ref, :process, _object, _reason}
 
       assert :error == Query.find_cluster_announce(tid, cluster.id, :request_response)
     end
- end
+  end
 end

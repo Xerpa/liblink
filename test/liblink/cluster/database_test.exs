@@ -80,4 +80,31 @@ defmodule Liblink.Cluster.DatabaseTest do
     assert :ok == Database.del_async(pid, :key)
     assert :error = Database.fetch_sync(pid, :key)
   end
+
+  describe "database subscriptions" do
+    test "receive put events", %{pid: pid} do
+      assert {:ok, tid} = Database.get_tid(pid)
+      assert :ok == Database.subscribe(pid, self())
+      assert :ok == Database.put(pid, :key, :value)
+      assert_receive {Database, ^pid, ^tid, {:put, :key, nil, :value}}
+    end
+
+    test "receive del events", %{pid: pid} do
+      assert {:ok, tid} = Database.get_tid(pid)
+      assert :ok == Database.put(pid, :key, :value)
+      assert :ok == Database.subscribe(pid, self())
+      assert :ok == Database.del(pid, :key)
+      assert_receive {Database, ^pid, ^tid, {:del, :key, :value}}
+    end
+
+    test "stop receiving events after unsubscribe", %{pid: pid} do
+      assert {:ok, tid} = Database.get_tid(pid)
+      assert :ok == Database.subscribe(pid, self())
+      assert :ok == Database.put(pid, :key, :value)
+      assert :ok == Database.unsubscribe(pid, self())
+      assert :ok == Database.del(pid, :key)
+      assert_receive {Database, ^pid, ^tid, {:put, :key, nil, :value}}
+      refute_receive {Database, ^pid, ^tid, _event}
+    end
+  end
 end

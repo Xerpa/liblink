@@ -14,15 +14,14 @@
 
 defmodule Liblink.Cluster.Discover.ClientTest do
   use ExUnit.Case, async: true
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Mutation
 
   setup do
-    {:ok, pid} = Database.start_link([hooks: [__MODULE__, Liblink.Cluster.Discover.Client]], [])
+    {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover.Client]], [])
     {:ok, tid} = Database.get_tid(pid)
-    :ok = init_database(pid)
+    :ok = Database.subscribe(pid, self())
 
     {:ok, [database: {pid, tid}]}
   end
@@ -30,21 +29,38 @@ defmodule Liblink.Cluster.Discover.ClientTest do
   test "adds client when services are written", %{database: {pid, _tid}} do
     services = MapSet.new()
     assert :ok == Mutation.add_remote_services(pid, "cluster_id", :request_response, services)
-    assert_receive {:put, {:discover, :services, "cluster_id", :request_response}, nil, ^services}
-    assert_receive {:put, {:discover, :client, "cluster_id", :request_response}, nil, client_pid}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, "cluster_id", :request_response}, nil,
+                     ^services}}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :client, "cluster_id", :request_response}, nil, client_pid}}
+
     assert Process.alive?(client_pid)
   end
 
   test "removes client when services are removed", %{database: {pid, _tid}} do
     services = MapSet.new()
     assert :ok == Mutation.add_remote_services(pid, "cluster_id", :request_response, services)
-    assert_receive {:put, {:discover, :services, "cluster_id", :request_response}, nil, ^services}
-    assert_receive {:put, {:discover, :client, "cluster_id", :request_response}, nil, client_pid}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, "cluster_id", :request_response}, nil,
+                     ^services}}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :client, "cluster_id", :request_response}, nil, client_pid}}
+
     tag = Process.monitor(client_pid)
 
     assert :ok == Mutation.del_remote_services(pid, "cluster_id", :request_response)
-    assert_receive {:del, {:discover, :services, "cluster_id", :request_response}, ^services}
-    assert_receive {:del, {:discover, :client, "cluster_id", :request_response}, ^client_pid}
+
+    assert_receive {Database, _pid, _tid,
+                    {:del, {:discover, :services, "cluster_id", :request_response}, ^services}}
+
+    assert_receive {Database, _pid, _tid,
+                    {:del, {:discover, :client, "cluster_id", :request_response}, ^client_pid}}
+
     assert_receive {:DOWN, ^tag, :process, ^client_pid, :normal}
   end
 end

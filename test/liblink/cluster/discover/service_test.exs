@@ -14,7 +14,6 @@
 
 defmodule Liblink.Cluster.Discover.ServiceTest do
   use ExUnit.Case, async: false
-  use Test.Liblink.TestDBHook
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Consul.Config
@@ -30,9 +29,9 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
   @moduletag capture_log: true
 
   setup env do
-    {:ok, pid} = Database.start_link([hooks: [__MODULE__, Liblink.Cluster.Discover]], [])
+    {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover]], [])
     {:ok, tid} = Database.get_tid(pid)
-    :ok = init_database(pid)
+    :ok = Database.subscribe(pid, self())
 
     consul = Consul.client(Config.new!())
 
@@ -89,7 +88,10 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
   } do
     cluster_id = cluster.id
     DiscoverService.exec(discover_worker)
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}}
+
     assert MapSet.new() == services
   end
 
@@ -104,7 +106,10 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
 
     RequestResponse.exec(announce_worker)
     DiscoverService.exec(discover_worker)
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}}
+
     assert [remote_service] = MapSet.to_list(services)
 
     assert {:ok, _} =
@@ -128,7 +133,10 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
     [check] = state.service.checks
     assert {:ok, %{status: 200}} = Consul.Agent.check_fail(consul, check.id)
     DiscoverService.exec(discover_worker)
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}}
+
     assert [%{status: :critical}] = MapSet.to_list(services)
   end
 
@@ -145,10 +153,13 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
     discover_worker = DiscoverService.exec(discover_worker)
     assert {:ok, %{status: 200}} = Consul.Agent.check_pass(consul, check.id)
     DiscoverService.exec(discover_worker)
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services0}
 
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, ^services0,
-                    services1}
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services0}}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, ^services0,
+                     services1}}
 
     assert [%{status: :critical}] = MapSet.to_list(services0)
     assert [%{status: :passing}] = MapSet.to_list(services1)
@@ -163,7 +174,10 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
     cluster_id = cluster.id
     RequestResponse.exec(announce_worker)
     DiscoverService.exec(discover_worker)
-    assert_receive {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}}
+
     assert MapSet.new() == services
   end
 end

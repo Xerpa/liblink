@@ -23,7 +23,17 @@ defmodule Liblink.Cluster.Database do
 
     tid = :ets.new(__MODULE__, [:protected, read_concurrency: true])
 
-    {:ok, %{tid: tid, hooks: hooks}}
+    {:ok, %{tid: tid, hooks: hooks, subscriptions: Map.new()}}
+  end
+
+  @spec subscribe(pid, pid) :: :ok
+  def subscribe(pid, subscriber) do
+    GenServer.cast(pid, {:subscribe, subscriber})
+  end
+
+  @spec unsubscribe(pid, pid) :: :ok
+  def unsubscribe(pid, subscriber) do
+    GenServer.cast(pid, {:unsubscribe, subscriber})
   end
 
   @spec put_async(t, term, term) :: :ok
@@ -113,12 +123,43 @@ defmodule Liblink.Cluster.Database do
     case message do
       {:put, key, value, hooks} ->
         put_value(state, key, value, hooks)
+        {:noreply, state}
 
       {:del, key, hooks} ->
         del_value(state, key, hooks)
-    end
+        {:noreply, state}
 
-    {:noreply, state}
+      {:subscribe, pid} ->
+        tag = Process.monitor(pid)
+        state = Map.update!(state, :subscriptions, &Map.put(&1, tag, pid))
+
+        {:noreply, state}
+
+      {:unsubscribe, pid} ->
+        entry = Enum.find(state.subscriptions, fn {_, val} -> val == pid end)
+
+        state =
+          case entry do
+            {tag, _pid} ->
+              Process.demonitor(tag)
+
+              Map.update!(state, :subscriptions, &Map.delete(&1, tag))
+
+            nil ->
+              state
+          end
+
+        {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info(message, state) do
+    case message do
+      {:DOWN, tag, :process, _pid, _reason} ->
+        state = Map.update!(state, :subscriptions, &Map.delete(&1, tag))
+        {:noreply, state}
+    end
   end
 
   @spec put_value(state_t, term, term, [Hook.t()]) :: :ok | :error
@@ -131,6 +172,10 @@ defmodule Liblink.Cluster.Database do
     with :ok <- Hook.call_before_hooks(hooks, event) do
       :ets.insert(tid, {key, next_value})
       Hook.call_after_hooks(hooks, self(), state.tid, event)
+
+      Enum.each(state.subscriptions, fn {_tag, pid} ->
+        Process.send(pid, {__MODULE__, self(), tid, event}, [])
+      end)
     end
   end
 
@@ -144,6 +189,10 @@ defmodule Liblink.Cluster.Database do
     with :ok <- Hook.call_before_hooks(hooks, event) do
       :ets.delete(tid, key)
       Hook.call_after_hooks(hooks, self(), tid, event)
+
+      Enum.each(state.subscriptions, fn {_tag, pid} ->
+        Process.send(pid, {__MODULE__, self(), tid, event}, [])
+      end)
     end
   end
 end
