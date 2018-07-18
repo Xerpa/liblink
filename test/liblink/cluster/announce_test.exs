@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.AnnounceTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Cluster
@@ -29,6 +29,7 @@ defmodule Liblink.Cluster.AnnounceTest do
     setup do
       {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Announce]], [])
       {:ok, tid} = Database.get_tid(pid)
+      :ok = Database.subscribe(pid, self())
 
       cluster =
         Cluster.new!(
@@ -42,7 +43,7 @@ defmodule Liblink.Cluster.AnnounceTest do
                 Service.new!(
                   id: "liblink",
                   protocol: :request_response,
-                  exports: Exports.new!(:module, module: Kernel)
+                  exports: Exports.new!(:module, module: Test.Liblink.TestService)
                 )
               ]
             )
@@ -54,11 +55,13 @@ defmodule Liblink.Cluster.AnnounceTest do
     end
 
     test "starts then announce worker when a new cluster is registered", %{
-      database: {pid, _tid},
+      database: {pid, tid},
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
+      assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       assert Process.alive?(announce_pid)
     end
 
@@ -67,13 +70,17 @@ defmodule Liblink.Cluster.AnnounceTest do
       database: {pid, tid}
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      assert {:ok, announce_pid} = Database.fetch_sync(pid, {:announce, cluster.id})
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
+      assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       ref = Process.monitor(announce_pid)
 
       assert :ok == Mutation.del_cluster(pid, cluster.id)
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert_receive {:DOWN, ^ref, :process, _object, _reason}
 
-      assert :error == Query.find_cluster_announce(tid, cluster.id)
+      assert :error == Query.find_cluster_announce(tid, cluster.id, :request_response)
     end
   end
 end

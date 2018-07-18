@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Cluster.Announce.Worker do
+defmodule Liblink.Cluster.Announce.RequestResponse do
   alias Liblink.Random
   alias Liblink.Socket
   alias Liblink.Keyword
   alias Liblink.Socket.Device
+  alias Liblink.Cluster.Naming
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Monitor
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Data.Consul.Service
   alias Liblink.Data.Consul.TTLCheck
   alias Liblink.Network.Consul.Agent
+  alias Liblink.Cluster.Protocol.Router
 
   import Liblink.Data.Macros
 
@@ -38,7 +40,7 @@ defmodule Liblink.Cluster.Announce.Worker do
     endpoint = Random.random_tcp_endpoint("0.0.0.0")
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
     service_id = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
-    service_name = cluster.id
+    service_name = Naming.service_name(cluster, :request_response)
 
     case Socket.open(:router, "@" <> endpoint) do
       {:ok, device} ->
@@ -57,7 +59,9 @@ defmodule Liblink.Cluster.Announce.Worker do
                  meta: metadata,
                  port: Device.bind_port(device),
                  checks: [ttlcheck]
-               ) do
+               ),
+             {:ok, router} <- Router.new(cluster.id, cluster.announce.services),
+             :ok <- Socket.consume(device, {Router, :handler, [device, router]}) do
           {:ok,
            %{socket: device, consul: consul, cluster: cluster, service0: service, service: nil}}
         else
@@ -82,7 +86,9 @@ defmodule Liblink.Cluster.Announce.Worker do
   def exec(state) do
     tags =
       state.cluster.announce.services
-      |> Enum.filter(&Monitor.eval(&1.monitor))
+      |> Enum.filter(fn service ->
+        service.protocol == :request_response and Monitor.eval(service.monitor)
+      end)
       |> Enum.map(& &1.id)
       |> Enum.sort()
 

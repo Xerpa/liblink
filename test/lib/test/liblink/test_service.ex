@@ -16,4 +16,12 @@ defmodule Test.Liblink.TestService do
   def ping(_) do
     {:error, Message.new(:error)}
   end
+
+  def misbehaving(_message) do
+    :misbehaving
+  end
+
+  def exception(%{payload: message}) when is_binary(message) do
+    raise(RuntimeError, message: message)
+  end
 end

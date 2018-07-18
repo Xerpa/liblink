@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Network.Consul.AgentTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   alias Liblink.Network.Consul
   alias Liblink.Data.Consul.Config

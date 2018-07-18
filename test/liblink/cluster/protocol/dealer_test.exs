@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   alias Liblink.Socket
   alias Liblink.Data.Message
@@ -23,6 +23,8 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
   alias Liblink.Cluster.Protocol.Router
   alias Test.Liblink.TestService
 
+  import Liblink.Random
+
   @moduletag capture_log: true
 
   describe "start_link" do
@@ -30,11 +32,73 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
       assert {:ok, pid} = Dealer.start_link([])
       assert is_pid(pid)
     end
+
+    test "init_hook is called" do
+      self = self()
+      assert {:ok, _pid} = Dealer.start_link(init_hook: fn -> send(self, :init_hook) end)
+      assert_receive :init_hook
+    end
+  end
+
+  describe "halt" do
+    test "terminates the server" do
+      {:ok, pid} = Dealer.start_link()
+      tag = Process.monitor(pid)
+      Dealer.halt(pid)
+      assert_receive {:DOWN, ^tag, :process, ^pid, :normal}
+    end
+  end
+
+  describe "device management" do
+    setup do
+      endpoint = random_inproc_endpoint()
+      {:ok, device} = Socket.open(:dealer, ">" <> endpoint)
+
+      on_exit(fn ->
+        Socket.close(device)
+      end)
+
+      {:ok, dealer} = Dealer.start_link()
+
+      {:ok,
+       [
+         dealer: dealer,
+         device: device
+       ]}
+    end
+
+    test "can attach a device", %{dealer: dealer, device: device} do
+      assert :ok == Dealer.attach(dealer, device)
+      assert MapSet.new([device]) == Dealer.devices(dealer)
+    end
+
+    test "can detach a device", %{dealer: dealer, device: device} do
+      assert :ok == Dealer.attach(dealer, device)
+      assert :ok == Dealer.detach(dealer, device)
+      assert MapSet.new() == Dealer.devices(dealer)
+    end
+
+    test "can reattach a device", %{dealer: dealer, device: device} do
+      assert :ok == Dealer.attach(dealer, device)
+      assert :ok == Dealer.detach(dealer, device)
+      assert :ok == Dealer.attach(dealer, device)
+      assert MapSet.new([device]) == Dealer.devices(dealer)
+    end
+
+    test "can detach a non-attached device", %{dealer: dealer, device: device} do
+      assert :ok == Dealer.detach(dealer, device)
+    end
+
+    test "can attach twice", %{dealer: dealer, device: device} do
+      assert :ok == Dealer.attach(dealer, device)
+      assert :ok == Dealer.attach(dealer, device)
+      assert MapSet.new([device]) == Dealer.devices(dealer)
+    end
   end
 
   describe "request" do
     setup env do
-      endpoint = "inproc://#{__MODULE__}"
+      endpoint = random_inproc_endpoint()
       {:ok, router} = Socket.open(:router, "@" <> endpoint)
       {:ok, dealer} = Socket.open(:dealer, ">" <> endpoint)
 

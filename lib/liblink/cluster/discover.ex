@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Liblink.Cluster.Announce do
+defmodule Liblink.Cluster.Discover do
   use Liblink.Cluster.Database.Hook
 
   alias Liblink.Network.Consul
   alias Liblink.Data.Consul.Config
   alias Liblink.Data.Cluster
-  alias Liblink.Data.Cluster.Announce
+  alias Liblink.Data.Cluster.Discover
   alias Liblink.Cluster.FoldServer
   alias Liblink.Cluster.ClusterSupervisor
-  alias Liblink.Cluster.Announce.RequestResponse
+  alias Liblink.Cluster.Discover.Service
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
 
@@ -30,46 +30,50 @@ defmodule Liblink.Cluster.Announce do
     case event do
       {:put, key, _, value} ->
         with {:cluster, _} <- key,
-             cluster = %Cluster{announce: %Announce{}} <- value,
+             cluster = %Cluster{discover: %Discover{}} <- value,
              {:ok, config} <- Config.new(),
-             {:ok, worker} <- RequestResponse.new(Consul.client(config), cluster) do
+             {:ok, worker} <- Service.new(pid, Consul.client(config), cluster, :request_response) do
           proc = %{
-            exec: &RequestResponse.exec/1,
-            halt: &RequestResponse.halt/1,
+            exec: &Service.exec/1,
+            halt: &Service.halt/1,
             data: worker
           }
 
-          announce_cluster(pid, cluster.id, proc, :request_response)
+          subscribe(pid, cluster.id, proc, :request_response)
         end
 
       {:del, key, value} ->
         with {:cluster, cluster_id} <- key,
-             %Cluster{announce: %Announce{}} <- value do
-          suppress_cluster(pid, tid, cluster_id, :request_response)
+             %Cluster{discover: %Discover{}} <- value do
+          unsubscribe(pid, tid, cluster_id, :request_response)
         end
+
+      _ ->
+        :ok
     end
   end
 
-  @spec suppress_cluster(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
-  defp suppress_cluster(pid, tid, cluster_id, protocol) do
-    with {:ok, announce_pid} <- Query.find_cluster_announce(tid, cluster_id, protocol) do
-      FoldServer.halt(announce_pid)
-      Mutation.del_cluster_announce(pid, cluster_id, protocol)
+  @spec unsubscribe(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
+  defp unsubscribe(pid, tid, cluster_id, protocol) do
+    with {:ok, discover_pid} <- Query.find_cluster_discover(tid, cluster_id, protocol) do
+      FoldServer.halt(discover_pid)
+      Mutation.del_cluster_discover(pid, cluster_id, protocol)
     end
 
     :ok
   end
 
-  @spec announce_cluster(Database.t(), Cluster.id(), FoldServer.proc(), Service.protocol()) ::
-          {:ok, pid}
-  defp announce_cluster(pid, cluster_id, proc, protocol) do
+  @spec subscribe(Database.t(), Cluster.id(), map, Service.protocol()) :: :ok
+  defp subscribe(pid, cluster_id, proc, protocol) do
     init_hook = fn ->
-      :ok = Mutation.add_cluster_announce(pid, cluster_id, protocol, self())
+      :ok = Mutation.add_cluster_discover(pid, cluster_id, protocol, self())
     end
 
     {:ok, _pid} =
-      {FoldServer, [proc: proc, interval_in_ms: 1_000, init_hook: init_hook]}
+      {FoldServer, [proc: proc, init_hook: init_hook, interval_in_ms: 1_000]}
       |> Supervisor.child_spec(shutdown: 10_000, restart: :transient)
       |> ClusterSupervisor.start_child()
+
+    :ok
   end
 end

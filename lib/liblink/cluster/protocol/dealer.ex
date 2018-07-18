@@ -19,14 +19,23 @@ defmodule Liblink.Cluster.Protocol.Dealer do
   alias Liblink.Socket.Device
   alias Liblink.Data.Message
   alias Liblink.Cluster.Protocol.Dealer.Impl
+  alias Liblink.Data.Keyword
 
   import Liblink.Guards
 
   require Logger
 
-  @spec start_link([Impl.option()]) :: {:ok, pid}
+  @type t :: pid
+
+  @spec start_link([Impl.option() | {:init_hook, (() -> term)}]) :: {:ok, pid}
   def start_link(options \\ []) do
     GenServer.start_link(__MODULE__, options)
+  end
+
+  @spec devices(pid) :: [Device.t()]
+  @spec devices(pid, timeout) :: [Device.t()]
+  def devices(pid, timeout \\ 1_000) do
+    GenServer.call(pid, :devices, timeout)
   end
 
   @spec attach(pid, Device.t(), timeout) :: :ok | no_return
@@ -41,18 +50,31 @@ defmodule Liblink.Cluster.Protocol.Dealer do
     GenServer.call(pid, {:del_dev, device}, timeout)
   end
 
-  @spec request(pid, Message.t(), timeout) ::
+  @spec halt(pid) :: :ok
+  def halt(pid) do
+    GenServer.cast(pid, :halt)
+  end
+
+  @spec request(t, Message.t(), [Impl.sendmsg_opt()]) ::
           {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
-  def request(dealer, message = %Message{}, timeout_in_ms \\ 1_000)
-      when is_pid(dealer) and is_timeout(timeout_in_ms) do
+  def request(dealer, message = %Message{}, opts \\ [])
+      when is_pid(dealer) and is_list(opts) do
     # FIXME: this might actually take ~ (2 * timeout_in_ms)
+    timeout =
+      case Keyword.fetch_integer(opts, :timeout_in_ms) do
+        {:ok, timeout} -> timeout
+        _error -> 1_000
+      end
 
     payload = Message.encode(message)
 
     reply =
       try do
-        GenServer.call(dealer, {:sendmsg, payload, self(), timeout_in_ms})
+        GenServer.call(dealer, {:sendmsg, payload, self(), opts}, timeout)
       catch
+        :exit, {:noproc, {GenServer, :call, _}} ->
+          {:error, :io_error}
+
         :exit, {:timeout, {GenServer, :call, _}} ->
           {:error, :timeout}
       end
@@ -65,13 +87,15 @@ defmodule Liblink.Cluster.Protocol.Dealer do
             reply -> reply
           end
       after
-        timeout_in_ms -> {:error, :timeout}
+        timeout -> {:error, :timeout}
       end
     end
   end
 
   @impl true
   def init(options) do
+    {:ok, init_hook} = Keyword.fetch_function(options, :init_hook, fn -> nil end)
+    init_hook.()
     Process.send_after(self(), :timeout_step, Impl.timeout_interval())
     Impl.new(options)
   end
@@ -88,6 +112,9 @@ defmodule Liblink.Cluster.Protocol.Dealer do
       {:del_dev, device} ->
         Impl.del_device(device, state)
 
+      :devices ->
+        Impl.devices(state)
+
       message ->
         _ = Logger.debug("discarding unknown call message", metadata: [data: [message: message]])
         {:noreply, state}
@@ -96,9 +123,14 @@ defmodule Liblink.Cluster.Protocol.Dealer do
 
   @impl true
   def handle_cast(message, state) do
-    _ = Logger.debug("discarding unknown cast message", metadata: [data: [message: message]])
+    case message do
+      :halt ->
+        Impl.halt(state)
 
-    {:noreply, state}
+      _message ->
+        _ = Logger.debug("discarding unknown cast message", metadata: [data: [message: message]])
+        {:noreply, state}
+    end
   end
 
   @impl true

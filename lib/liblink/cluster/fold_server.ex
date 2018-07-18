@@ -41,10 +41,10 @@ defmodule Liblink.Cluster.FoldServer do
   @spec start_link([option]) :: {:ok, pid}
   def start_link(args) when is_list(args) do
     with {:ok, proc} <- Keyword.fetch_map(args, :proc),
-         {:ok, init_callback} <- Keyword.fetch_function(args, :init_callback),
+         {:ok, init_hook} <- Keyword.fetch_function(args, :init_hook, fn -> nil end),
          {:ok, interval_in_ms} <- Keyword.fetch_integer(args, :interval_in_ms) do
       state = %{proc: proc, interval: interval_in_ms}
-      GenServer.start_link(__MODULE__, state: state, init_callback: init_callback)
+      GenServer.start_link(__MODULE__, state: state, init_hook: init_hook)
     end
   end
 
@@ -57,12 +57,13 @@ defmodule Liblink.Cluster.FoldServer do
   def init(args) do
     Process.flag(:trap_exit, true)
 
-    state = Keyword.fetch!(args, :state)
-    init_callback = Keyword.fetch!(args, :init_callback)
-    apply(init_callback, [])
+    args
+    |> Keyword.fetch!(:init_hook)
+    |> apply([])
 
     state =
-      state
+      args
+      |> Keyword.fetch!(:state)
       |> run_exec()
       |> schedule()
 

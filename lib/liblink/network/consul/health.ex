@@ -18,6 +18,7 @@ defmodule Liblink.Network.Consul.Health do
           | {:near, String.t()}
           | {:service, String.t()}
           | {:node_meta, String.t()}
+          | {:state, String.t()}
 
   @spec service(Tesla.Client.t(), String.t(), [option]) :: Tesla.Env.result()
   def service(client = %Tesla.Client{}, service, params \\ []) do
