@@ -70,7 +70,7 @@ defmodule Liblink.Cluster.Discover do
     end
 
     {:ok, _pid} =
-      {FoldServer, [proc: proc, init_hook: init_hook, interval_in_ms: 10_000]}
+      {FoldServer, [proc: proc, init_hook: init_hook, interval_in_ms: 1_000]}
       |> Supervisor.child_spec(shutdown: 10_000, restart: :transient)
       |> ClusterSupervisor.start_child()
   end
