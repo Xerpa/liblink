@@ -14,6 +14,7 @@
 
 defmodule Liblink.Cluster.DiscoverTest do
   use ExUnit.Case, async: false
+  use Test.Liblink.TestDBHook
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Cluster
@@ -25,8 +26,9 @@ defmodule Liblink.Cluster.DiscoverTest do
 
   describe "announcing a cluster via database" do
     setup do
-      {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover]], [])
+      {:ok, pid} = Database.start_link([hooks: [Liblink.Cluster.Discover, __MODULE__]], [])
       {:ok, tid} = Database.get_tid(pid)
+      init_database(pid)
 
       cluster =
         Cluster.new!(
@@ -44,7 +46,7 @@ defmodule Liblink.Cluster.DiscoverTest do
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      db_yield(pid)
+      assert_receive _
       assert {:ok, discover_pid} = Query.find_cluster_discover(tid, cluster.id, :request_response)
       assert Process.alive?(discover_pid)
     end
@@ -54,16 +56,12 @@ defmodule Liblink.Cluster.DiscoverTest do
       cluster: cluster
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
-      db_yield(pid)
+      assert_receive _
       assert {:ok, discover_pid} = Query.find_cluster_discover(tid, cluster.id, :request_response)
       tag = Process.monitor(discover_pid)
       assert :ok == Mutation.del_cluster(pid, cluster.id)
       assert_receive {:DOWN, ^tag, :process, ^discover_pid, :normal}
       assert :error == Query.find_cluster_discover(tid, cluster.id, :request_response)
     end
-  end
-
-  defp db_yield(pid) do
-    Database.fetch_sync(pid, :yield)
   end
 end
