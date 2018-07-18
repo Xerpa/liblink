@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.AnnounceTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Cluster
@@ -60,6 +60,7 @@ defmodule Liblink.Cluster.AnnounceTest do
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
       assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       assert Process.alive?(announce_pid)
     end
@@ -70,11 +71,13 @@ defmodule Liblink.Cluster.AnnounceTest do
     } do
       assert :ok == Mutation.add_cluster(pid, cluster)
       assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert {:ok, announce_pid} = Query.find_cluster_announce(tid, cluster.id, :request_response)
       ref = Process.monitor(announce_pid)
 
       assert :ok == Mutation.del_cluster(pid, cluster.id)
-      assert_receive {Database, _pid, _tid, {:del, _key, _val}}
+      assert_receive {Database, _pid, _tid, _event}
+      assert_receive {Database, _pid, _tid, _event}
       assert_receive {:DOWN, ^ref, :process, _object, _reason}
 
       assert :error == Query.find_cluster_announce(tid, cluster.id, :request_response)

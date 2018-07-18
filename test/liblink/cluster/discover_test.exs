@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.DiscoverTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   alias Liblink.Cluster.Database
   alias Liblink.Data.Cluster

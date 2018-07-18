@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Announce.RequestResponseTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   alias Liblink.Socket.Device
   alias Liblink.Data.Cluster

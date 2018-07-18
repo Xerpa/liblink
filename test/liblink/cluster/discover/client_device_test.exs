@@ -20,6 +20,8 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
   alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Mutation
 
+  import Liblink.Random
+
   @moduletag capture_log: true
 
   setup do
@@ -30,7 +32,7 @@ defmodule Liblink.Cluster.Discover.ClientDeviceTest do
 
     {:ok, tid} = Database.get_tid(pid)
 
-    {:ok, device} = Socket.open(:dealer, ">inproc://#{__MODULE__}")
+    {:ok, device} = Socket.open(:dealer, ">" <> random_inproc_endpoint())
 
     on_exit(fn ->
       Socket.close(device)

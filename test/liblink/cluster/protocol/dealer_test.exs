@@ -13,7 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   alias Liblink.Socket
   alias Liblink.Data.Message
@@ -22,6 +22,8 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
   alias Liblink.Cluster.Protocol.Dealer
   alias Liblink.Cluster.Protocol.Router
   alias Test.Liblink.TestService
+
+  import Liblink.Random
 
   @moduletag capture_log: true
 
@@ -49,7 +51,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
   describe "device management" do
     setup do
-      endpoint = "inproc://#{__MODULE__}"
+      endpoint = random_inproc_endpoint()
       {:ok, device} = Socket.open(:dealer, ">" <> endpoint)
 
       on_exit(fn ->
@@ -96,7 +98,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
   describe "request" do
     setup env do
-      endpoint = "inproc://#{__MODULE__}"
+      endpoint = random_inproc_endpoint()
       {:ok, router} = Socket.open(:router, "@" <> endpoint)
       {:ok, dealer} = Socket.open(:dealer, ">" <> endpoint)
 

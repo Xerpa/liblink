@@ -13,11 +13,13 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   alias Liblink.Timeout
   alias Liblink.Socket
   alias Liblink.Cluster.Protocol.Dealer.Impl
+
+  import Liblink.Random
 
   @moduletag capture_log: true
 
@@ -35,7 +37,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
 
   describe "add_device" do
     setup do
-      {:ok, device} = Socket.open(:dealer, "@inproc://#{__MODULE__}")
+      {:ok, device} = Socket.open(:dealer, "@" <> random_inproc_endpoint())
 
       on_exit(fn ->
         Socket.close(device)
@@ -60,7 +62,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
 
   describe "del_device" do
     setup do
-      {:ok, device} = Socket.open(:dealer, "@inproc://#{__MODULE__}")
+      {:ok, device} = Socket.open(:dealer, "@" <> random_inproc_endpoint())
 
       on_exit(fn ->
         Socket.close(device)
@@ -189,7 +191,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
 
   describe "sendmsg" do
     setup do
-      endpoint = "inproc://#{__MODULE__}"
+      endpoint = random_inproc_endpoint()
       {:ok, router} = Socket.open(:router, "@" <> endpoint)
       {:ok, dealer} = Socket.open(:dealer, ">" <> endpoint)
 
