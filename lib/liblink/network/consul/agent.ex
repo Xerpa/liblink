@@ -25,7 +25,7 @@ defmodule Liblink.Network.Consul.Agent do
 
   @spec service_deregister(Tesla.Client.t(), String.t()) :: Tesla.Env.result()
   def service_deregister(client = %Tesla.Client{}, service_id) when is_binary(service_id) do
-    Tesla.put(client, "/v1/agent/service/deregister/#{service_id}", nil)
+    Tesla.put(client, "/v1/agent/service/deregister/#{service_id}", "")
   end
 
   @spec services(Tesla.Client.t()) :: Tesla.Env.result()
