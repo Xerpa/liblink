@@ -1,0 +1,57 @@
+sudo: required
+
+language: elixir
+
+services: docker
+
+before_install:
+  - docker pull consul
+  - docker run -d -p 127.0.0.1:8500:8500 consul
+  - |
+    set -e
+
+    tmpdir=$(mktemp -d) && (
+      git clone --depth=1 git://github.com/zeromq/libzmq.git "$tmpdir/libzmq"
+      git clone --depth=1 git://github.com/zeromq/czmq.git "$tmpdir/czmq"
+
+      cd "$tmpdir/libzmq" && {
+        ./autogen.sh
+        ./configure
+        make
+        sudo make install
+        sudo ldconfig
+      }
+
+      cd "$tmpdir/czmq" && {
+        ./autogen.sh
+        ./configure
+        make
+        sudo make install
+        sudo ldconfig
+      }
+
+      rm -rf "$tmpdir"
+    )
+
+addons:
+  apt:
+    packages:
+      - git-all
+      - build-essential
+      - libtool
+      - pkg-config
+      - autotools-dev
+      - autoconf
+      - automake
+      - cmake
+      - uuid-dev
+      - libpcre3-dev
+
+elixir:
+  - 1.6
+
+otp_release:
+  - 20.0
+  - 20.1
+  - 20.2
+  - 20.3
