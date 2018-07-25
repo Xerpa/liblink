@@ -80,7 +80,7 @@ defmodule Liblink.Socket.Recvmsg.RecvState do
     {:cont, :ok, {__MODULE__, %{data | mqueue: mqueue}}}
   end
 
-  @spec notify_poll({reference, pid}, Nif.signal()) :: :ok
+  @spec notify_poll({reference, pid}, :data | :timeout) :: :ok
   defp notify_poll({tag, pid}, signal) do
     Process.send(pid, {tag, signal}, [])
   end

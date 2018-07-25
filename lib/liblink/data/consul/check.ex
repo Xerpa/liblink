@@ -13,6 +13,7 @@
 # limitations under the License.
 
 defmodule Liblink.Data.Consul.Check do
+  alias Liblink.Data.Keyword
   alias Liblink.Data.Consul.TTLCheck
 
   import Liblink.Data.Macros
@@ -21,12 +22,10 @@ defmodule Liblink.Data.Consul.Check do
 
   @type time_t :: {non_neg_integer, :ns, :us, :ms, :s, :h}
 
-  @type option :: TTLCheck.option()
-
-  @spec new!(:ttl, [option]) :: t
+  @spec new!(:ttl, [TTLCheck.option()]) :: t
   def_bang(:new, 2)
 
-  @spec new(:ttl, [option]) :: {:ok, t} | Keyword.fetch_error()
+  @spec new(:ttl, [TTLCheck.option()]) :: {:ok, t} | Keyword.fetch_error()
   def new(:ttl, options) do
     TTLCheck.new(options)
   end

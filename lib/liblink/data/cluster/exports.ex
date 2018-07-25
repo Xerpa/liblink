@@ -13,14 +13,17 @@
 # limitations under the License.
 
 defmodule Liblink.Data.Cluster.Exports do
+  alias Liblink.Data.Keyword
   alias Liblink.Data.Cluster.Exports.Module, as: ModExport
 
   import Liblink.Data.Macros
 
-  @spec new!(:module, [ModExports.option()]) :: ModExport.t()
+  @type t :: ModExport.t()
+
+  @spec new!(:module, [ModExport.option()]) :: ModExport.t()
   def_bang(:new, 2)
 
-  @spec new(:module, [ModExports.option()]) :: {:ok, ModExport.t()} | Keyword.fetch_error()
+  @spec new(:module, [ModExport.option()]) :: {:ok, ModExport.t()} | Keyword.fetch_error()
   def new(:module, options) when is_list(options) do
     ModExport.new(options)
   end

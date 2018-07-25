@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Network.Consul.Health do
+  alias Liblink.Network.Consul
+
   @type option ::
           {:dc, String.t()}
           | {:near, String.t()}
@@ -20,7 +22,7 @@ defmodule Liblink.Network.Consul.Health do
           | {:node_meta, String.t()}
           | {:state, String.t()}
 
-  @spec service(Tesla.Client.t(), String.t(), [option]) :: Tesla.Env.result()
+  @spec service(Consul.t(), String.t(), [option]) :: Tesla.Env.result()
   def service(client = %Tesla.Client{}, service, params \\ []) do
     params =
       Enum.map(params, fn {key, value} ->

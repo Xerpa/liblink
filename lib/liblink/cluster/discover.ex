@@ -18,10 +18,12 @@ defmodule Liblink.Cluster.Discover do
   alias Liblink.Network.Consul
   alias Liblink.Data.Consul.Config
   alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service, as: ClusterService
   alias Liblink.Data.Cluster.Discover
   alias Liblink.Cluster.FoldServer
   alias Liblink.Cluster.ClusterSupervisor
   alias Liblink.Cluster.Discover.Service
+  alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
 
@@ -53,7 +55,7 @@ defmodule Liblink.Cluster.Discover do
     end
   end
 
-  @spec unsubscribe(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
+  @spec unsubscribe(Database.t(), Database.tid(), Cluster.id(), ClusterService.protocol()) :: :ok
   defp unsubscribe(pid, tid, cluster_id, protocol) do
     with {:ok, discover_pid} <- Query.find_cluster_discover(tid, cluster_id, protocol) do
       FoldServer.halt(discover_pid)
@@ -63,7 +65,7 @@ defmodule Liblink.Cluster.Discover do
     :ok
   end
 
-  @spec subscribe(Database.t(), Cluster.id(), map, Service.protocol()) :: :ok
+  @spec subscribe(Database.t(), Cluster.id(), map, ClusterService.protocol()) :: :ok
   defp subscribe(pid, cluster_id, proc, protocol) do
     init_hook = fn ->
       :ok = Mutation.add_cluster_discover(pid, cluster_id, protocol, self())

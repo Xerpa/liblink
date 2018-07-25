@@ -15,12 +15,13 @@
 defmodule Liblink.Nif do
   import Liblink.Guards
 
-  @dialyzer [:unknown]
   @moduledoc false
 
   @opaque socket_t :: reference
 
   @type socket_type :: :router | :dealer
+
+  @type signal_type :: :cont | :halt
 
   @type signal_return :: :ok | :error | {:error, :badsignal} | {:error, :badargs}
 
@@ -46,34 +47,46 @@ defmodule Liblink.Nif do
     end
   end
 
-  @doc false
   @spec new_socket(socket_type, String.t(), String.t(), pid()) :: new_socket_return
   def new_socket(socktype, ext_endpoint, int_endpoint, server)
       when is_socket_type(socktype) and is_binary(ext_endpoint) and is_binary(int_endpoint) and
-             is_pid(server),
-      do: fail()
+             is_pid(server) do
+    fail()
+  end
 
-  @doc false
   @spec bind_port(socket_t) :: integer() | nil | {:error, :badargs}
-  def bind_port(socket) when is_reference(socket), do: fail()
+  def bind_port(socket) when is_reference(socket) do
+    fail()
+  end
 
   @doc false
   @spec sendmsg(socket_t, iodata) :: sendmsg_return
-  def sendmsg(socket, message) when is_reference(socket) and is_iodata(message),
-    do: fail()
+  def sendmsg(socket, message) when is_reference(socket) and is_iodata(message) do
+    fail()
+  end
 
   @doc false
-  @spec signal(socket_t, :cont | :stop) :: signal_return
-  def signal(socket, signal) when is_reference(socket) and is_signal(signal), do: fail()
+  @spec signal(socket_t, signal_type) :: signal_return
+  def signal(socket, signal) when is_reference(socket) and is_signal(signal) do
+    fail()
+  end
 
-  @doc false
   @spec state(socket_t) :: state_return
-  def state(socket) when is_reference(socket), do: fail()
+  def state(socket) when is_reference(socket) do
+    fail()
+  end
 
-  @doc false
   @spec term(socket_t) :: term_return
-  def term(socket) when is_reference(socket), do: fail()
+  def term(socket) when is_reference(socket) do
+    fail()
+  end
 
-  @spec fail() :: any
-  defp fail(), do: Liblink.Hidden.fail("nif function")
+  @spec fail() :: term
+  defp fail() do
+    # XXX: trick dialyzer
+    case :erlang.phash2(:liblink, 1) do
+      0 -> raise(RuntimeError, message: "nif function")
+      _ -> List.first([])
+    end
+  end
 end

@@ -18,8 +18,6 @@ defmodule Liblink.Socket.Recvmsg.Impl do
 
   require Logger
 
-  @dialyzer [:unknown]
-
   @moduledoc false
 
   @opaque state_t :: map()

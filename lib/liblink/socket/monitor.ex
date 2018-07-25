@@ -15,6 +15,8 @@
 defmodule Liblink.Socket.Monitor do
   use GenServer
 
+  alias Liblink.Nif
+  alias Liblink.Socket.Device
   alias Liblink.Socket.Monitor.Impl
 
   require Logger
@@ -49,7 +51,7 @@ defmodule Liblink.Socket.Monitor do
     end
   end
 
-  @spec new_device((pid -> {:ok, Nif.t()} | term)) :: {:ok, Device.t()} | {:error, term}
+  @spec new_device((pid -> {:ok, Nif.socket_t()} | term)) :: {:ok, Device.t()} | {:error, term}
   def new_device(new_sockfn) do
     GenServer.call(__MODULE__, {:new_device, new_sockfn})
   end

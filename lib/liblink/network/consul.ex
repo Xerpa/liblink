@@ -15,7 +15,9 @@
 defmodule Liblink.Network.Consul do
   alias Liblink.Data.Consul.Config
 
-  @spec client(Config.t()) :: Tesla.Client.t()
+  @type t :: Tesla.Client.t()
+
+  @spec client(Config.t()) :: t
   def client(config = %Config{}) do
     Tesla.build_client([
       {Tesla.Middleware.BaseUrl, config.endpoint},

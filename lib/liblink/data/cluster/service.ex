@@ -14,6 +14,7 @@
 
 defmodule Liblink.Data.Cluster.Service do
   alias Liblink.Data.Keyword
+  alias Liblink.Data.Cluster.Exports
   alias Liblink.Data.Cluster.Monitor
   alias Liblink.Data.Cluster.Exports.Module, as: ExportModule
 

@@ -5,7 +5,7 @@ defmodule Liblink.Cluster.Database do
   alias Liblink.Cluster.Database.Hook
   alias Liblink.Cluster.Database.UniqConstraint
 
-  @type t :: pid | __MODULE__
+  @type t :: pid | atom
 
   @type tid :: :ets.tid()
 

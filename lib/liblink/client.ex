@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Client do
+  alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Message
   alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Query
@@ -20,7 +22,7 @@ defmodule Liblink.Client do
 
   import Liblink.Guards
 
-  @spec request(Cluster.id(), Service.t(), atom, Message.t(), timeout) ::
+  @spec request(Cluster.id(), Service.id(), atom, Message.t(), timeout) ::
           {:ok, Message.t()}
           | {:error, :timeout}
           | {:error, :io_error}

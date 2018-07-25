@@ -27,7 +27,7 @@ defmodule Liblink.Socket.Monitor.Impl do
     {:ok, %{procs: Map.new(), socks: Map.new()}}
   end
 
-  @spec new_device(state_t, (pid -> Nif.t())) ::
+  @spec new_device(state_t, (pid -> Nif.socket_t())) ::
           {:reply, {:ok, Device.t()}, state_t} | {:reply, :error, state_t}
   def new_device(state, new_sockfn) when is_function(new_sockfn, 1) do
     {:ok, recvmsg_pid} = Recvmsg.start()
