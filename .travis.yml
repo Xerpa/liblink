@@ -47,6 +47,12 @@ addons:
       - uuid-dev
       - libpcre3-dev
 
+script:
+  - mix format --check-formatted
+  - mix compile
+  - mix dialyzer
+  - mix test
+
 elixir:
   - 1.6
 
