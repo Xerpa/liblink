@@ -47,6 +47,11 @@ addons:
       - uuid-dev
       - libpcre3-dev
 
+cache:
+  directories:
+    - _build
+    - deps
+
 script:
   - mix format --check-formatted
   - mix compile
