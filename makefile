@@ -15,7 +15,7 @@ endif
 erl_cflags      := -I$(shell $(bin_elixir) $(CURDIR)/ext/bin/erlang-include-dirs.exs)
 liblink_rpath   := $(shell $(CURDIR)/ext/bin/rpath $(liblink_ldflags))
 liblink_ldlibs  := $(shell $(bin_pkgconfig) --libs-only-l libczmq)
-liblink_cflags  := -pthread -Isrc -pedantic $(erl_cflags) $(shell $(bin_pkgconfig) --cflags libczmq)
+liblink_cflags  := -pthread -std=c99 -Isrc $(erl_cflags) $(shell $(bin_pkgconfig) --cflags libczmq)
 liblink_ldflags := -rpath $(liblink_rpath) $(shell $(bin_pkgconfig) --libs-only-L libczmq)
 
 srcfiles = $(wildcard src/*.c)
