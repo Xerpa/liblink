@@ -23,10 +23,21 @@ defmodule Liblink.Timeout do
   end
 
   @spec deadline_expired?(deadline_t) :: boolean
-  def deadline_expired?(:infinity), do: false
+  def deadline_expired?(deadline) when is_integer(deadline) or is_atom(deadline) do
+    deadline_expired?(deadline, current())
+  end
 
-  def deadline_expired?(deadline) when is_integer(deadline) do
-    :erlang.monotonic_time() > deadline
+  @spec deadline_expired?(deadline_t, deadline_t) :: boolean
+  def deadline_expired?(:infinity, _), do: false
+  def deadline_expired?(_, :infinity), do: false
+
+  def deadline_expired?(deadline, sysnow) when is_integer(deadline) and is_integer(sysnow) do
+    sysnow > deadline
+  end
+
+  @spec current() :: deadline_t
+  def current() do
+    :erlang.monotonic_time()
   end
 
   @spec timeout_mul(timeout, float | integer) :: timeout

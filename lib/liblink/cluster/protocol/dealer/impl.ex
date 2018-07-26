@@ -127,18 +127,21 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
         Timeout.deadline(timeout, :millisecond)
       end
 
+    request_entry = {from, deadline}
+
     case state.balance.(restrict_fn.(state.devices)) do
       :error ->
         {:reply, {:error, :no_connection}, state}
 
       {:ok, device} ->
-        request_entry = {from, deadline}
-        timeout_entry = max(1, div(timeout, timeout_interval()))
-
         state =
-          state
-          |> Map.update!(:timeouts, &Map.put_new(&1, tag, timeout_entry))
-          |> Map.update!(:requests, &Map.put_new(&1, tag, request_entry))
+          if timeout == :infinity do
+            Map.update!(state, :requests, &Map.put_new(&1, tag, request_entry))
+          else
+            state
+            |> Map.update!(:timeouts, &Map.put_new(&1, tag, deadline))
+            |> Map.update!(:requests, &Map.put_new(&1, tag, request_entry))
+          end
 
         :ok = Socket.sendmsg_async(device, payload)
 
@@ -165,15 +168,15 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
   end
 
   @spec timeout_step(state_t) :: {:noreply, state_t}
-  def timeout_step(state, increment \\ 1) do
-    {expired, timeouts} =
-      Enum.reduce(state.timeouts, {[], %{}}, fn {tag, timeout}, {dead, alive} ->
-        timeout = timeout - increment
+  def timeout_step(state, sysnow \\ nil) do
+    sysnow = sysnow || Timeout.current()
 
-        if 0 >= timeout do
+    {expired, timeouts} =
+      Enum.reduce(state.timeouts, {[], %{}}, fn {tag, deadline}, {dead, alive} ->
+        if Timeout.deadline_expired?(deadline, sysnow) do
           {[tag | dead], alive}
         else
-          {dead, Map.put(alive, tag, timeout)}
+          {dead, Map.put(alive, tag, deadline)}
         end
       end)
 
