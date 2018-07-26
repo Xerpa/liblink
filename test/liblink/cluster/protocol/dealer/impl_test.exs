@@ -93,12 +93,14 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
       req = :anything
 
       state =
-        if env[:with_timeout] do
-          requests = %{tag => req}
-          timeouts = %{tag => env.with_timeout}
-          %{state | timeouts: timeouts, requests: requests}
-        else
-          state
+        case env[:with_timeout] do
+          {amount, unit} ->
+            requests = %{tag => req}
+            timeouts = %{tag => Timeout.deadline(amount, unit)}
+            %{state | timeouts: timeouts, requests: requests}
+
+          _otherwise ->
+            state
         end
 
       {:ok, [state: state, tag: tag, request: req]}
@@ -109,34 +111,35 @@ defmodule Liblink.Cluster.Protocol.Dealer.ImplTest do
       assert %{} == state.timeouts
     end
 
-    @tag with_timeout: 1
+    @tag with_timeout: {1, :second}
     test "setup configuration | with_timeout", %{state: state, tag: tag, request: request} do
       assert %{tag => request} == state.requests
-      assert %{tag => 1} == state.timeouts
+      assert %{^tag => deadline} = state.timeouts
+      refute Timeout.deadline_expired?(deadline)
     end
 
     test "do nothing on empty state", %{state: state} do
       assert {:noreply, state} == Impl.timeout_step(state)
     end
 
-    @tag with_timeout: 1
+    @tag with_timeout: {-1, :second}
     test "delete expired requests", %{state: state} do
       assert {:noreply, state} = Impl.timeout_step(state)
       assert %{} == state.timeouts
       assert %{} == state.requests
     end
 
-    @tag with_timeout: 2
+    @tag with_timeout: {1, :second}
     test "keep pending requests", %{state: state, tag: tag, request: request} do
       assert {:noreply, state} = Impl.timeout_step(state)
-      assert %{tag => 1} == state.timeouts
+      assert %{^tag => _} = state.timeouts
       assert %{tag => request} == state.requests
     end
 
-    @tag with_timeout: 2
+    @tag with_timeout: {1, :millisecond}
     test "eventually expire requests", %{state: state} do
-      assert {:noreply, state} = Impl.timeout_step(state)
-      assert {:noreply, state} = Impl.timeout_step(state)
+      sysnow = Timeout.deadline(5, :millisecond)
+      assert {:noreply, state} = Impl.timeout_step(state, sysnow)
       assert %{} == state.timeouts
       assert %{} == state.requests
     end
