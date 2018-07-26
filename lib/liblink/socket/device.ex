@@ -15,10 +15,8 @@
 defmodule Liblink.Socket.Device do
   alias Liblink.Nif
 
-  @dialyzer [:unknown]
-
   @type t :: %__MODULE__{
-          socket: Liblink.Nif.socket(),
+          socket: Nif.socket_t(),
           sendmsg_pid: pid,
           recvmsg_pid: pid
         }

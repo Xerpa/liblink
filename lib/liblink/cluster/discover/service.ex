@@ -16,15 +16,17 @@ defmodule Liblink.Cluster.Discover.Service do
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.RemoteService
   alias Liblink.Data.Cluster.Discover
+  alias Liblink.Data.Cluster.Service
   alias Liblink.Cluster.Naming
   alias Liblink.Network.Consul
+  alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Mutation
 
   require Logger
 
   @type t :: map
 
-  @spec new(Database.t(), Tesla.Client.t(), Cluster.t(), Service.protocol()) :: {:ok, t}
+  @spec new(Database.t(), Consul.t(), Cluster.t(), Service.protocol()) :: {:ok, t}
   def new(pid, consul = %Tesla.Client{}, cluster = %Cluster{discover: %Discover{}}, protocol) do
     {:ok, %{database: pid, consul: consul, cluster: cluster, protocol: protocol}}
   end

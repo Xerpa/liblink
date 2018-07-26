@@ -15,6 +15,7 @@
 defmodule Liblink.Socket.Sendmsg.Fsm do
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg.InitState
+  alias Liblink.Timeout
 
   @opaque data_t :: map()
 

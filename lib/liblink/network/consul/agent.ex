@@ -14,10 +14,11 @@
 
 defmodule Liblink.Network.Consul.Agent do
   alias Liblink.Data.Consul.Service
+  alias Liblink.Network.Consul
 
   @type check_option :: {:note, String.t()}
 
-  @spec service_register(Tesla.Client.t(), Service.t()) :: Tesla.Env.result()
+  @spec service_register(Consul.t(), Service.t()) :: Tesla.Env.result()
   def service_register(client = %Tesla.Client{}, service = %Service{}) do
     payload = Jason.encode!(Service.to_consul(service))
     Tesla.put(client, "/v1/agent/service/register", payload)

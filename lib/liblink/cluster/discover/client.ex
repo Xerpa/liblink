@@ -37,7 +37,7 @@ defmodule Liblink.Cluster.Discover.Client do
     end
   end
 
-  @spec del_client(Databse.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
+  @spec del_client(Database.t(), Database.tid(), Cluster.id(), Service.protocol()) :: :ok
   defp del_client(pid, tid, cluster_id, protocol) do
     with {:ok, pid} = Query.find_discover_client(tid, cluster_id, protocol) do
       Dealer.halt(pid)

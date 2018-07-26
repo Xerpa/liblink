@@ -17,8 +17,6 @@ defmodule Liblink.Socket.Sendmsg.Impl do
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg.Fsm
 
-  @dialyzer [:unknown]
-
   @moduledoc false
 
   @opaque state_t :: map()

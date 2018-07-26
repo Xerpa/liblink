@@ -76,8 +76,7 @@ defmodule Liblink.Cluster.Protocol.Router do
     [routekey | [requestid | payload]]
   end
 
-  @spec call_service(Cluster.id(), Servicet.t(), Message.t()) ::
-          {:success | :failure, Message.t()}
+  @spec call_service(Cluster.id(), Service.t(), Message.t()) :: {:success | :failure, Message.t()}
   defp call_service(cluster_id, service = %Service{}, request = %Message{}) do
     exports = service.exports
 

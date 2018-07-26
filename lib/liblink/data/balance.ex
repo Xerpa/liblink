@@ -17,14 +17,14 @@ defmodule Liblink.Data.Balance do
 
   @type t :: round_robin_t | weighted_round_robin_t
 
-  @type round_robin_t :: (Enum.t(term) -> :error | {:ok, term})
+  @type round_robin_t :: (Enum.t() -> :error | {:ok, term})
 
-  @type weighted_round_robin_t :: (Enum.t({non_neg_integer, term}) -> :error | {:ok, term})
+  @type weighted_round_robin_t :: (Enum.t() -> :error | {:ok, term})
 
-  @spec round_robin!(Enum.t(term)) :: :error | {:ok, term}
+  @spec round_robin!(Enum.t()) :: :error | {:ok, term}
   def_bang(:round_robin, 1)
 
-  @spec round_robin(Enum.t(term)) :: :error | {:ok, term}
+  @spec round_robin(Enum.t()) :: :error | {:ok, term}
   def round_robin(terms) do
     if Enum.empty?(terms) do
       :error
@@ -36,10 +36,10 @@ defmodule Liblink.Data.Balance do
     end
   end
 
-  @spec weighted_round_robin!(Enum.t(term)) :: :error | {:ok, term}
+  @spec weighted_round_robin!(Enum.t()) :: :error | {:ok, term}
   def_bang(:weighted_round_robin, 1)
 
-  @spec weighted_round_robin(Enum.t({non_neg_integer(), term})) :: :error | {:ok, term}
+  @spec weighted_round_robin(Enum.t()) :: :error | {:ok, term}
   def weighted_round_robin(terms) do
     if Enum.empty?(terms) do
       :error

@@ -14,6 +14,7 @@
 
 defmodule Liblink.Socket.Recvmsg.Transition do
   alias Liblink.Nif
+  alias Liblink.Socket.Device
   alias Liblink.Socket.Recvmsg.RecvState
   alias Liblink.Socket.Recvmsg.SubsState
 

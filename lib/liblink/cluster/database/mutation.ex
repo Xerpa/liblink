@@ -15,6 +15,7 @@
 defmodule Liblink.Cluster.Database.Mutation do
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Service
+  alias Liblink.Data.Cluster.RemoteService
   alias Liblink.Cluster.Database
   alias Liblink.Socket.Device
 

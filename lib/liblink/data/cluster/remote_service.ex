@@ -15,6 +15,7 @@
 defmodule Liblink.Data.Cluster.RemoteService do
   alias Liblink.Data.Keyword
   alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service
 
   import Liblink.Data.Macros
 

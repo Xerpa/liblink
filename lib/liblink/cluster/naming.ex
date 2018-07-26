@@ -14,15 +14,16 @@
 
 defmodule Liblink.Cluster.Naming do
   alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service
 
-  @spec protocol_code(Liblink.Data.Cluster.Service.protocol()) :: String.t()
+  @spec protocol_code(Service.protocol()) :: String.t()
   defp protocol_code(protocol) do
     case protocol do
       :request_response -> "0"
     end
   end
 
-  @spec service_name(Cluster.t(), Liblink.Data.Cluster.Service.protocol()) :: String.t()
+  @spec service_name(Cluster.t(), Service.protocol()) :: String.t()
   def service_name(cluster = %Cluster{}, protocol) do
     cluster.id <> "-" <> protocol_code(protocol)
   end

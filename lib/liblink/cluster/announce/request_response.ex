@@ -15,14 +15,14 @@
 defmodule Liblink.Cluster.Announce.RequestResponse do
   alias Liblink.Random
   alias Liblink.Socket
-  alias Liblink.Keyword
   alias Liblink.Socket.Device
   alias Liblink.Cluster.Naming
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.Monitor
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Data.Consul.Service
-  alias Liblink.Data.Consul.TTLCheck
+  alias Liblink.Data.Consul.Check
+  alias Liblink.Network.Consul
   alias Liblink.Network.Consul.Agent
   alias Liblink.Cluster.Protocol.Router
 
@@ -30,12 +30,15 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
 
   require Logger
 
+  # XXX: can't make dialyzer accept these functions
+  @dialyzer [{:nowarn_function, new: 2, new!: 2}]
+
   @type t :: map
 
   @spec new!(Consul.t(), Cluster.t()) :: t
   def_bang(:new, 2)
 
-  @spec new(Consul.t(), Cluster.t()) :: {:ok, t} | :error | Keyword.fetch_error()
+  @spec new(Consul.t(), Cluster.t()) :: {:ok, t} | :error
   def new(consul = %Tesla.Client{}, cluster = %Cluster{announce: %Announce{}}) do
     endpoint = Random.random_tcp_endpoint("0.0.0.0")
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
@@ -45,7 +48,8 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
     case Socket.open(:router, "@" <> endpoint) do
       {:ok, device} ->
         with {:ok, ttlcheck} <-
-               TTLCheck.new(
+               Check.new(
+                 :ttl,
                  id: "service:#{service_id}",
                  name: "service:#{service_name}",
                  ttl: [{10, :s}],

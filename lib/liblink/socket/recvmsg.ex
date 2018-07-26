@@ -20,8 +20,6 @@ defmodule Liblink.Socket.Recvmsg do
 
   require Logger
 
-  @dialyzer [:unknown]
-
   @opaque state_t :: map
 
   @type consumer_t :: Impl.consumer_t()
@@ -62,6 +60,7 @@ defmodule Liblink.Socket.Recvmsg do
     GenServer.call(pid, :recvmsg, timeout)
   end
 
+  @spec consume(pid, consumer_t, timeout) :: :ok | {:error, :badstate}
   def consume(pid, consumer, timeout) do
     GenServer.call(pid, {:consume, consumer}, timeout)
   end

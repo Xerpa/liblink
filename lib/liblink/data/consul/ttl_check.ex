@@ -24,8 +24,8 @@ defmodule Liblink.Data.Consul.TTLCheck do
           {:id, String.t() | nil}
           | {:name, String.t() | nil}
           | {:status, :passing | :warning | :critical}
-          | {:ttl, [Consul.time_t()]}
-          | {:deregister_critical_service_after, [Consul.time_t()]}
+          | {:ttl, [Check.time_t()]}
+          | {:deregister_critical_service_after, [Check.time_t()]}
 
   defstruct [:id, :name, :status, :ttl, :deregister_critical_service_after]
 
@@ -35,6 +35,7 @@ defmodule Liblink.Data.Consul.TTLCheck do
   @spec new!([option]) :: t
   def_bang(:new, 1)
 
+  @spec new() :: {:ok, t}
   @spec new([option]) :: {:ok, t} | Keyword.fetch_error()
   def new(options \\ []) when is_list(options) do
     with {:ok, id} <- Keyword.maybe_fetch_binary(options, :id),

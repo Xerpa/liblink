@@ -23,8 +23,6 @@ defmodule Liblink.Socket.Sendmsg do
 
   import Liblink.Guards
 
-  @dialyzer [:unknown]
-
   @doc """
   initializes the sendmsg thread.
   """

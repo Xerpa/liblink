@@ -30,7 +30,7 @@ defmodule Liblink.Cluster.ClusterSupervisor do
     DynamicSupervisor.init(args)
   end
 
-  @spec start_child(Supervision.child_spec()) :: DynamicSupervisor.on_start_child()
+  @spec start_child(Supervisor.child_spec()) :: DynamicSupervisor.on_start_child()
   def start_child(child) do
     start_child(__MODULE__, child)
   end

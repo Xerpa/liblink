@@ -14,14 +14,12 @@
 
 defmodule Liblink.Socket do
   alias Liblink.Nif
-  alias Liblink.Device
+  alias Liblink.Socket.Device
   alias Liblink.Socket.Monitor
   alias Liblink.Socket.Sendmsg
   alias Liblink.Socket.Recvmsg
 
   import Liblink.Random
-
-  @dialyzer [:unknown]
 
   @spec open(Nif.socket_type(), String.t()) ::
           {:ok, Device.t()} | {:error, term} | {:error, :bad_endpoint}

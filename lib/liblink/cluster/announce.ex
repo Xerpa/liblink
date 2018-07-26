@@ -18,19 +18,24 @@ defmodule Liblink.Cluster.Announce do
   alias Liblink.Network.Consul
   alias Liblink.Data.Consul.Config
   alias Liblink.Data.Cluster
+  alias Liblink.Data.Cluster.Service
   alias Liblink.Data.Cluster.Announce
   alias Liblink.Cluster.FoldServer
   alias Liblink.Cluster.ClusterSupervisor
   alias Liblink.Cluster.Announce.RequestResponse
+  alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Database.Mutation
+
+  # XXX: can't make dialyzer accept these function
+  @dialyzer [{:nowarn_function, announce_cluster: 4, after_hook: 3}]
 
   @impl true
   def after_hook(pid, tid, event) do
     case event do
-      {:put, key, _, value} ->
+      {:put, key, _, cluster} ->
         with {:cluster, _} <- key,
-             cluster = %Cluster{announce: %Announce{}} <- value,
+             %Cluster{announce: %Announce{}} <- cluster,
              {:ok, config} <- Config.new(),
              {:ok, worker} <- RequestResponse.new(Consul.client(config), cluster) do
           proc = %{
