@@ -54,7 +54,7 @@ cache:
 
 script:
   - mix format --check-formatted
-  - mix compile
+  - env liblink_cflags_extra='-Wall -pedantic' mix compile
   - mix dialyzer
   - mix test
 
