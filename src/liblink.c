@@ -250,6 +250,8 @@ int liblink_sock_write (liblink_sock_t *socket, zmsg_t **msg)
 
     pthread_mutex_unlock(&socket->mutex);
   }
+
+  return(rc);
 }
 
 void liblink_sock_destroy (liblink_sock_t *socket)
