@@ -184,7 +184,7 @@ liblink_sock_t *liblink_new_socket (enum liblink_type socktype, const char *ext_
 
   if (0 == strncmp(ext_endpoint, "@tcp://", 7))
   {
-    socket->bind_port = zsock_bind(socket->sock, ext_endpoint + 1);
+    socket->bind_port = zsock_bind(socket->sock, "tcp://%s", ext_endpoint + 7);
     if (socket->bind_port == -1)
     { goto e_handler; }
   }
