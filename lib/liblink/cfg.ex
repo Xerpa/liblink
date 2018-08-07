@@ -24,7 +24,7 @@ defmodule Liblink.Cfg do
     end
   end
 
-  @spec protocol_port(:request_response) :: String.t() | nil
+  @spec protocol_port(:request_response) :: pos_integer() | nil
   def protocol_port(protocol) when protocol == :request_response do
     with netcfg when is_list(netcfg) <- Application.get_env(:liblink, :netcfg, []),
          protocfg when is_list(protocfg) <- Keyword.get(netcfg, :request_response, []),
