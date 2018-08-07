@@ -17,7 +17,7 @@ defmodule Liblink.Logger do
 
   defmacro __using__(_arg) do
     quote do
-      import Liblink.Logger
+      require Liblink.Logger
       require Logger
     end
   end
@@ -42,7 +42,7 @@ defmodule Liblink.Logger do
     nil
   end
 
-  defmacro debug(message) when is_binary(message) do
+  defmacro debug(message) do
     env = Macro.escape(getenv(__CALLER__))
 
     quote do
@@ -50,27 +50,27 @@ defmodule Liblink.Logger do
     end
   end
 
-  defmacro info(message) when is_binary(message) do
+  defmacro info(message) do
     env = Macro.escape(getenv(__CALLER__))
 
     quote do
-      Liblink.Logger.log(unquote(env), :info, message)
+      Liblink.Logger.log(unquote(env), :info, unquote(message))
     end
   end
 
-  defmacro warn(message) when is_binary(message) do
+  defmacro warn(message) do
     env = Macro.escape(getenv(__CALLER__))
 
     quote do
-      Liblink.Logger.log(unquote(env), :warn, message)
+      Liblink.Logger.log(unquote(env), :warn, unquote(message))
     end
   end
 
-  defmacro error(message) when is_binary(message) do
+  defmacro error(message) do
     env = Macro.escape(getenv(__CALLER__))
 
     quote do
-      Liblink.Logger.log(unquote(env), :error, message)
+      Liblink.Logger.log(unquote(env), :error, unquote(message))
     end
   end
 

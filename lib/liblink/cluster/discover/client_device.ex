@@ -60,11 +60,11 @@ defmodule Liblink.Cluster.Discover.ClientDevice do
       :ok
     catch
       :exit, {:noproc, {GenServer, :call, _}} ->
-        Logger.warn("could not attach device to dealer: noproc")
+        Liblink.Logger.warn("could not attach device to dealer: noproc")
         :error
 
       :exit, {:timeout, {GenServer, :call, _}} ->
-        Logger.warn("could not attach device to dealer: timeout")
+        Liblink.Logger.warn("could not attach device to dealer: timeout")
         :error
     end
   end

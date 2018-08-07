@@ -162,7 +162,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
         {:noreply, %{state | requests: requests, timeouts: timeouts}}
 
       {nil, _requests} ->
-        Logger.warn("ignoring expired reply message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring expired reply message=#{inspect(message)}")
         {:noreply, state}
     end
   end

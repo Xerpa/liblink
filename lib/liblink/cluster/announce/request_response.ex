@@ -120,12 +120,14 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
     else
       case Agent.service_register(state.consul, service) do
         {:ok, %{status: 200}} ->
-          Logger.info("successfully registered service on consul: service=#{service.name}")
+          Liblink.Logger.info(
+            "successfully registered service on consul: service=#{service.name}"
+          )
 
           {:ok, service}
 
         error ->
-          Logger.warn(
+          Liblink.Logger.warn(
             "error registering service on consul: service=#{service.name} error=#{inspect(error)}"
           )
 
@@ -143,7 +145,7 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
         :ok
 
       error ->
-        Logger.warn(
+        Liblink.Logger.warn(
           "error invoking check_pass on consul. service=#{service.name} error=#{inspect(error)}"
         )
 

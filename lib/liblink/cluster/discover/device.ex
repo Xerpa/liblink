@@ -50,7 +50,7 @@ defmodule Liblink.Cluster.Discover.Device do
               )
 
             _error ->
-              Logger.warn("error creating socket for endpoint #{endpoint}")
+              Liblink.Logger.warn("error creating socket for endpoint #{endpoint}")
           end
         end)
 
