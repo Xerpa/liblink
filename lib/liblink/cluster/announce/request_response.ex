@@ -15,8 +15,9 @@
 defmodule Liblink.Cluster.Announce.RequestResponse do
   use Liblink.Logger
 
-  alias Liblink.Random
+  alias Liblink.Cfg
   alias Liblink.Socket
+  alias Liblink.Endpoint
   alias Liblink.Socket.Device
   alias Liblink.Cluster.Naming
   alias Liblink.Data.Cluster
@@ -40,7 +41,9 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
 
   @spec new(Consul.t(), Cluster.t()) :: {:ok, t} | :error
   def new(consul = %Tesla.Client{}, cluster = %Cluster{announce: %Announce{}}) do
-    endpoint = Random.random_tcp_endpoint("0.0.0.0")
+    net_host = Cfg.protocol_host(:request_response)
+    net_port = Cfg.protocol_port(:request_response)
+    endpoint = Endpoint.tcp_endpoint(net_host, net_port)
     metadata = Map.new(cluster.announce.metadata, fn {k, v} -> {string(k), string(v)} end)
     service_id = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
     service_name = Naming.service_name(cluster, :request_response)
@@ -61,6 +64,7 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
                  name: service_name,
                  tags: [],
                  meta: metadata,
+                 addr: net_host,
                  port: Device.bind_port(device),
                  checks: [ttlcheck]
                ),
