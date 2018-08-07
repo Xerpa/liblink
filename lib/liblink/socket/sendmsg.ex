@@ -101,7 +101,7 @@ defmodule Liblink.Socket.Sendmsg do
         Impl.sendmsg(message, deadline, :sync, state)
 
       message ->
-        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -117,7 +117,7 @@ defmodule Liblink.Socket.Sendmsg do
         Impl.sendmsg(message, deadline, :async, state)
 
       message ->
-        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -125,7 +125,7 @@ defmodule Liblink.Socket.Sendmsg do
 
   @impl true
   def handle_info(message, state) do
-    Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+    Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
     {:noreply, state}
   end

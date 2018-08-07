@@ -89,7 +89,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.consume(consumer, :sync, state)
 
       message ->
-        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -108,7 +108,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.halt_consumer(:async, state)
 
       message ->
-        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -127,7 +127,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.on_monitor_message(message, :async, state)
 
       message ->
-        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end

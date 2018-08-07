@@ -74,7 +74,7 @@ defmodule Liblink.Socket.Recvmsg.Fsm do
 
       @impl true
       def on_monitor_message(message, data) do
-        Logger.warn("ignoring monitor message message=#{inspect(message)}")
+        Liblink.Logger.warn("ignoring monitor message message=#{inspect(message)}")
 
         {:cont, :ok, {__MODULE__, data}}
       end

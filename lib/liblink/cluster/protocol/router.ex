@@ -95,7 +95,7 @@ defmodule Liblink.Cluster.Protocol.Router do
                 inspect(reply)
               }"
 
-            Logger.info("processing router request: success" <> debug)
+            Liblink.Logger.info("processing router request: success" <> debug)
 
             {:success, reply}
 
@@ -105,7 +105,7 @@ defmodule Liblink.Cluster.Protocol.Router do
                 inspect(reply)
               }"
 
-            Logger.info("processing router request: failure" <> debug)
+            Liblink.Logger.info("processing router request: failure" <> debug)
 
             {:failure, reply}
 
@@ -115,7 +115,7 @@ defmodule Liblink.Cluster.Protocol.Router do
                 inspect(term)
               }"
 
-            Logger.warn(
+            Liblink.Logger.warn(
               "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, Message.t} " <>
                 debug
             )
@@ -132,7 +132,7 @@ defmodule Liblink.Cluster.Protocol.Router do
             }"
 
           stacktrace_fmt = Exception.format_stacktrace(stacktrace)
-          Logger.warn("error executing router" <> debug <> "\n" <> stacktrace_fmt)
+          Liblink.Logger.warn("error executing router" <> debug <> "\n" <> stacktrace_fmt)
           {:failure, Message.new({:error, {:except, except}})}
       end
     else

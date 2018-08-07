@@ -31,14 +31,16 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
         {:cont, :ok, {__MODULE__, data}}
 
       {:error, e} ->
-        Logger.warn(
+        Liblink.Logger.warn(
           "removing misbehaving consumer message=#{inspect(message)} reason=#{inspect(e)}"
         )
 
         Transition.consume_to_recv(message, data)
 
       badmsg ->
-        Logger.warn("removing misbehaving consumer message=#{inspect(badmsg)} reason=:badmsg")
+        Liblink.Logger.warn(
+          "removing misbehaving consumer message=#{inspect(badmsg)} reason=:badmsg"
+        )
 
         Transition.consume_to_recv(message, data)
     end
@@ -51,11 +53,11 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
 
     case message do
       {:DOWN, ^tag, :process, _object, _reason} ->
-        Logger.warn("removing dead consumer")
+        Liblink.Logger.warn("removing dead consumer")
         Transition.consume_to_recv(data)
 
       _otherwise ->
-        Logger.debug("discarding unknown monitor message message=#{inspect(message)}")
+        Liblink.Logger.debug("discarding unknown monitor message message=#{inspect(message)}")
 
         {:cont, :ok, {__MODULE__, data}}
     end
@@ -67,7 +69,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
       apply(module, function, args)
     rescue
       e ->
-        Logger.warn(
+        Liblink.Logger.warn(
           "error invoking function module=#{module} function=#{function} args=#{inspect(args)} except=#{
             inspect(e)
           }"
@@ -83,7 +85,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
       apply(fun, [message])
     rescue
       e ->
-        Logger.warn("error invoking function except=#{inspect(e)}")
+        Liblink.Logger.warn("error invoking function except=#{inspect(e)}")
 
         {:error, e}
     end

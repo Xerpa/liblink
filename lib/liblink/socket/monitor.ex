@@ -39,12 +39,12 @@ defmodule Liblink.Socket.Monitor do
 
   @impl true
   def terminate(reason, state) do
-    Logger.debug("socket.monitor is terminated. reason=#{reason}")
+    Liblink.Logger.debug("socket.monitor is terminated. reason=#{reason}")
 
     if Enum.empty?(state.procs) do
       :ok
     else
-      Logger.info("closing all remaining sockets")
+      Liblink.Logger.info("closing all remaining sockets")
       _ = Impl.stop(state)
       :ok
     end
@@ -65,7 +65,7 @@ defmodule Liblink.Socket.Monitor do
         Impl.stats(state)
 
       message ->
-        Logger.warn("unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("unexpected message. message=#{inspect(message)}")
         {:reply, {:error, :badmsg}, state}
     end
   end
@@ -77,13 +77,13 @@ defmodule Liblink.Socket.Monitor do
         Impl.down(state, tag)
 
       {:EXIT, _from, reason} ->
-        Logger.debug("socket.monitor is exiting. reason=#{reason}")
+        Liblink.Logger.debug("socket.monitor is exiting. reason=#{reason}")
 
         state = Impl.stop(state)
         {:stop, reason, state}
 
       message ->
-        Logger.warn("unexpected message. message=#{inspect(message)}")
+        Liblink.Logger.warn("unexpected message. message=#{inspect(message)}")
         {:noreply, state}
     end
   end

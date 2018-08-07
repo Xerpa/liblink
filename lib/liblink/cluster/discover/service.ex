@@ -48,7 +48,7 @@ defmodule Liblink.Cluster.Discover.Service do
           handle_service(state, services)
 
         _reply ->
-          Logger.warn("error reading services from consul")
+          Liblink.Logger.warn("error reading services from consul")
       end
 
     state
@@ -70,7 +70,7 @@ defmodule Liblink.Cluster.Discover.Service do
             end
 
           error ->
-            _ = Logger.error("error reading services from consul: error=#{inspect(error)}")
+            Liblink.Logger.error("error reading services from consul: error=#{inspect(error)}")
             {:halt, :error}
         end
       end)
@@ -124,7 +124,7 @@ defmodule Liblink.Cluster.Discover.Service do
       )
     else
       _ ->
-        Logger.warn("received an invalid data from consul health=#{inspect(health)}")
+        Liblink.Logger.warn("received an invalid data from consul health=#{inspect(health)}")
 
         :error
     end
