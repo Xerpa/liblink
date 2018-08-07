@@ -14,6 +14,7 @@
 
 defmodule Liblink.Cluster.Protocol.Dealer do
   use GenServer
+  use Liblink.Logger
 
   alias Liblink.Socket
   alias Liblink.Socket.Device
@@ -22,8 +23,6 @@ defmodule Liblink.Cluster.Protocol.Dealer do
   alias Liblink.Data.Keyword
 
   import Liblink.Guards
-
-  require Logger
 
   @type t :: pid
 
@@ -116,7 +115,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
         Impl.devices(state)
 
       message ->
-        _ = Logger.debug("discarding unknown call message", metadata: [data: [message: message]])
+        Logger.debug("discarding unknown call message. message=#{inspect(message)}")
         {:noreply, state}
     end
   end
@@ -128,7 +127,7 @@ defmodule Liblink.Cluster.Protocol.Dealer do
         Impl.halt(state)
 
       _message ->
-        _ = Logger.debug("discarding unknown cast message", metadata: [data: [message: message]])
+        Logger.debug("discarding unknown cast message. message=#{inspect(message)}")
         {:noreply, state}
     end
   end

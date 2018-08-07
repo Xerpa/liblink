@@ -53,4 +53,15 @@ defmodule Liblink.Data.Cluster.Service do
         error
     end
   end
+
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(service, opts) do
+      concat([
+        "#Service",
+        to_doc([id: service.id, protocol: service.protocol], opts)
+      ])
+    end
+  end
 end

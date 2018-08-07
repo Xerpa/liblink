@@ -28,7 +28,7 @@ defmodule Liblink.Socket.Recvmsg.Fsm do
 
   defmacro __using__([]) do
     quote do
-      require Logger
+      use Liblink.Logger
 
       @behaviour Liblink.Socket.Recvmsg.Fsm
 
@@ -74,11 +74,7 @@ defmodule Liblink.Socket.Recvmsg.Fsm do
 
       @impl true
       def on_monitor_message(message, data) do
-        _ =
-          Logger.warn(
-            "ignoring monitor message",
-            metadata: [data: [message: message, state: __MODULE__]]
-          )
+        Logger.warn("ignoring monitor message message=#{inspect(message)}")
 
         {:cont, :ok, {__MODULE__, data}}
       end

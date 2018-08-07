@@ -108,7 +108,6 @@ defmodule Liblink.ClientTest do
 
     assert :failure == Message.meta_get(reply, "ll-status")
 
-    assert {:error, {:except, %RuntimeError{message: "except message"}, _stacktrace}} =
-             reply.payload
+    assert {:error, {:except, %RuntimeError{message: "except message"}}} = reply.payload
   end
 end

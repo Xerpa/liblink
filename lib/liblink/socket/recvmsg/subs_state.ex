@@ -31,20 +31,14 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
         {:cont, :ok, {__MODULE__, data}}
 
       {:error, e} ->
-        _ =
-          Logger.warn(
-            "removing misbehaving consumer [reason: exception]",
-            metadata: [data: [consumer: data.consumer], except: e]
-          )
+        Logger.warn(
+          "removing misbehaving consumer message=#{inspect(message)} reason=#{inspect(e)}"
+        )
 
         Transition.consume_to_recv(message, data)
 
       badmsg ->
-        _ =
-          Logger.warn(
-            "removing misbehaving consumer [reason: badmsg]",
-            metadata: [data: [consumer: data.consumer, badmsg: badmsg]]
-          )
+        Logger.warn("removing misbehaving consumer message=#{inspect(badmsg)} reason=:badmsg")
 
         Transition.consume_to_recv(message, data)
     end
@@ -57,15 +51,11 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
 
     case message do
       {:DOWN, ^tag, :process, _object, _reason} ->
-        _ = Logger.warn("removing dead consumer", data: [tag: tag])
+        Logger.warn("removing dead consumer")
         Transition.consume_to_recv(data)
 
       _otherwise ->
-        _ =
-          Logger.debug(
-            "discarding unknown monitor message",
-            metadata: [data: [message: message, state: __MODULE__]]
-          )
+        Logger.debug("discarding unknown monitor message message=#{inspect(message)}")
 
         {:cont, :ok, {__MODULE__, data}}
     end
@@ -77,11 +67,11 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
       apply(module, function, args)
     rescue
       e ->
-        _ =
-          Logger.warn(
-            "error invoking function",
-            metadata: [data: [function: {module, function, args}], except: e]
-          )
+        Logger.warn(
+          "error invoking function module=#{module} function=#{function} args=#{inspect(args)} except=#{
+            inspect(e)
+          }"
+        )
 
         {:error, e}
     end
@@ -93,11 +83,7 @@ defmodule Liblink.Socket.Recvmsg.SubsState do
       apply(fun, [message])
     rescue
       e ->
-        _ =
-          Logger.warn(
-            "error invoking function",
-            metadata: [data: [function: fun], except: e]
-          )
+        Logger.warn("error invoking function except=#{inspect(e)}")
 
         {:error, e}
     end

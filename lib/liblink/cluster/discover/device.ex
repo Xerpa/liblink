@@ -13,12 +13,11 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Discover.Device do
+  use Liblink.Logger
   use Liblink.Cluster.Database.Hook
 
   alias Liblink.Socket
   alias Liblink.Cluster.Database.Mutation
-
-  require Logger
 
   @impl true
   def after_hook(pid, _tid, event) do
@@ -51,7 +50,7 @@ defmodule Liblink.Cluster.Discover.Device do
               )
 
             _error ->
-              _ = Logger.warn("error creating socket for endpoint: #{endpoint}")
+              Logger.warn("error creating socket for endpoint #{endpoint}")
           end
         end)
 

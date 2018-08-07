@@ -76,4 +76,15 @@ defmodule Liblink.Data.Message do
         {String.downcase(Atom.to_string(k)), v}
     end)
   end
+
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(message, opts) do
+      concat([
+        "#Message",
+        to_doc([payload: message.payload, metadata: message.metadata], opts)
+      ])
+    end
+  end
 end

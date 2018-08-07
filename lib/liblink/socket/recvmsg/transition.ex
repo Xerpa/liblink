@@ -13,12 +13,12 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Recvmsg.Transition do
+  use Liblink.Logger
+
   alias Liblink.Nif
   alias Liblink.Socket.Device
   alias Liblink.Socket.Recvmsg.RecvState
   alias Liblink.Socket.Recvmsg.SubsState
-
-  require Logger
 
   @type consumer_t :: {atom, atom, list} | {atom, atom} | atom | pid | (iodata -> term)
 
@@ -42,8 +42,6 @@ defmodule Liblink.Socket.Recvmsg.Transition do
           {:cont, {:erro, :bad_consumer}, {RecvState, map}}
           | {:cont, :ok, {SendState, map}}
   def recv_to_consume(consumer, data) do
-    _ = Logger.info("recvmsg-fsm: recv -> consume")
-
     consumer =
       case consumer do
         {name, node} when is_atom(name) and is_atom(node) ->
@@ -83,8 +81,6 @@ defmodule Liblink.Socket.Recvmsg.Transition do
 
   @spec consume_to_recv(iodata, map) :: {:cont, :ok, {RecvState, map}}
   def consume_to_recv(message, data) do
-    _ = Logger.info("recvmsg-fsm: consume -> recv")
-
     mqueue = :queue.in(message, data.mqueue)
 
     n_data =
@@ -97,8 +93,6 @@ defmodule Liblink.Socket.Recvmsg.Transition do
 
   @spec consume_to_recv(map) :: {:cont, :ok, {RecvState, map}}
   def consume_to_recv(data) do
-    _ = Logger.info("recvmsg-fsm: consume -> recv")
-
     n_data = Map.delete(data, :consumer)
 
     {:cont, :ok, {RecvState, n_data}}

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Router do
+  use Liblink.Logger
+
   alias Liblink.Socket
   alias Liblink.Socket.Device
   alias Liblink.Data.Message
@@ -20,8 +22,6 @@ defmodule Liblink.Cluster.Protocol.Router do
   alias Liblink.Data.Cluster.Service
 
   import Liblink.Data.Macros
-
-  require Logger
 
   defstruct [:cluster_id, :services]
 
@@ -80,12 +80,6 @@ defmodule Liblink.Cluster.Protocol.Router do
   defp call_service(cluster_id, service = %Service{}, request = %Message{}) do
     exports = service.exports
 
-    metadata = [
-      cluster: cluster_id,
-      service: service.id,
-      request: request
-    ]
-
     target =
       case Message.meta_fetch(request, "ll-service-id") do
         {:ok, {_, target}} when is_atom(target) -> target
@@ -96,37 +90,50 @@ defmodule Liblink.Cluster.Protocol.Router do
       try do
         case apply(exports.module, target, [request]) do
           {:ok, reply = %Message{}} ->
-            _ =
-              Logger.info(
-                "processing router request: success",
-                metadata: [{:response, reply} | metadata]
-              )
+            debug =
+              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
+                inspect(reply)
+              }"
+
+            Logger.info("processing router request: success" <> debug)
 
             {:success, reply}
 
           {:error, reply = %Message{}} ->
-            _ =
-              Logger.info(
-                "processing router request: failure",
-                metadata: [{:response, reply} | metadata]
-              )
+            debug =
+              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
+                inspect(reply)
+              }"
+
+            Logger.info("processing router request: failure" <> debug)
 
             {:failure, reply}
 
-          _term ->
-            _ =
-              Logger.warn(
-                "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, Message.t}",
-                metadata: metadata
-              )
+          term ->
+            debug =
+              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
+                inspect(term)
+              }"
+
+            Logger.warn(
+              "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, Message.t} " <>
+                debug
+            )
 
             {:failure, Message.new({:error, :bad_service})}
         end
       rescue
         except ->
-          _ = Logger.warn("error executing router", metadata: [{:except, except} | metadata])
           stacktrace = System.stacktrace()
-          {:failure, Message.new({:error, {:except, except, stacktrace}})}
+
+          debug =
+            " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} except=#{
+              inspect(except)
+            }"
+
+          stacktrace_fmt = Exception.format_stacktrace(stacktrace)
+          Logger.warn("error executing router" <> debug <> "\n" <> stacktrace_fmt)
+          {:failure, Message.new({:error, {:except, except}})}
       end
     else
       {:failure, Message.new({:error, :not_found})}

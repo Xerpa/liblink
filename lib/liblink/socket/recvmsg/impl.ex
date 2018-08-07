@@ -13,10 +13,10 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Recvmsg.Impl do
+  use Liblink.Logger
+
   alias Liblink.Socket.Device
   alias Liblink.Socket.Recvmsg.Fsm
-
-  require Logger
 
   @moduledoc false
 

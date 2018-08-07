@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Discover.Service do
+  use Liblink.Logger
+
   alias Liblink.Data.Cluster
   alias Liblink.Data.Cluster.RemoteService
   alias Liblink.Data.Cluster.Discover
@@ -21,8 +23,6 @@ defmodule Liblink.Cluster.Discover.Service do
   alias Liblink.Network.Consul
   alias Liblink.Cluster.Database
   alias Liblink.Cluster.Database.Mutation
-
-  require Logger
 
   @type t :: map
 
@@ -48,7 +48,7 @@ defmodule Liblink.Cluster.Discover.Service do
           handle_service(state, services)
 
         _reply ->
-          _ = Logger.warn("error reading services from consul")
+          Logger.warn("error reading services from consul")
       end
 
     state
@@ -70,7 +70,7 @@ defmodule Liblink.Cluster.Discover.Service do
             end
 
           error ->
-            _ = Logger.error("error reading services from consul: #{inspect(error)}")
+            _ = Logger.error("error reading services from consul: error=#{inspect(error)}")
             {:halt, :error}
         end
       end)
@@ -124,11 +124,7 @@ defmodule Liblink.Cluster.Discover.Service do
       )
     else
       _ ->
-        _ =
-          Logger.warn(
-            "received an invalid data from consul",
-            metadata: [entry: health]
-          )
+        Logger.warn("received an invalid data from consul health=#{inspect(health)}")
 
         :error
     end
