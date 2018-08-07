@@ -14,11 +14,10 @@
 
 defmodule Liblink.Socket.Recvmsg do
   use GenServer
+  use Liblink.Logger
 
   alias Liblink.Socket.Shared
   alias Liblink.Socket.Recvmsg.Impl
-
-  require Logger
 
   @opaque state_t :: map
 
@@ -90,11 +89,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.consume(consumer, :sync, state)
 
       message ->
-        _ =
-          Logger.warn(
-            "[socket.recvmsg] ignoring unexpected message",
-            metadata: [data: [message: message]]
-          )
+        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -113,11 +108,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.halt_consumer(:async, state)
 
       message ->
-        _ =
-          Logger.warn(
-            "[socket.recvmsg] ignoring unexpected message",
-            metadata: [data: [message: message]]
-          )
+        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -136,11 +127,7 @@ defmodule Liblink.Socket.Recvmsg do
         Impl.on_monitor_message(message, :async, state)
 
       message ->
-        _ =
-          Logger.warn(
-            "[socket.recvmsg] ignoring unexpected message",
-            metadata: [data: [message: message]]
-          )
+        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end

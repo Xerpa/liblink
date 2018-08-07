@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Protocol.Dealer.Impl do
+  use Liblink.Logger
+
   alias Liblink.Timeout
   alias Liblink.Socket
   alias Liblink.Socket.Device
@@ -20,8 +22,6 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
   alias Liblink.Data.Balance
 
   import Liblink.Guards
-
-  require Logger
 
   @type state_t :: %{
           devices: MapSet.t(Device.t()),
@@ -162,7 +162,7 @@ defmodule Liblink.Cluster.Protocol.Dealer.Impl do
         {:noreply, %{state | requests: requests, timeouts: timeouts}}
 
       {nil, _requests} ->
-        _ = Logger.debug("ignoring expired reply")
+        Logger.warn("ignoring expired reply message=#{inspect(message)}")
         {:noreply, state}
     end
   end

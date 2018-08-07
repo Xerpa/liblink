@@ -14,12 +14,11 @@
 
 defmodule Liblink.Socket.Monitor do
   use GenServer
+  use Liblink.Logger
 
   alias Liblink.Nif
   alias Liblink.Socket.Device
   alias Liblink.Socket.Monitor.Impl
-
-  require Logger
 
   @spec start_link([], [{:name, atom}]) :: GenServer.on_start()
   def start_link([], opts \\ [name: __MODULE__]) do
@@ -40,12 +39,12 @@ defmodule Liblink.Socket.Monitor do
 
   @impl true
   def terminate(reason, state) do
-    _ = Logger.debug("socket.monitor is terminated", metadata: [data: [reason: reason]])
+    Logger.debug("socket.monitor is terminated. reason=#{reason}")
 
     if Enum.empty?(state.procs) do
       :ok
     else
-      _ = Logger.info("closing all remaining sockets")
+      Logger.info("closing all remaining sockets")
       _ = Impl.stop(state)
       :ok
     end
@@ -66,7 +65,7 @@ defmodule Liblink.Socket.Monitor do
         Impl.stats(state)
 
       message ->
-        _ = Logger.warn("unexpected message", metadata: [data: [message: message]])
+        Logger.warn("unexpected message. message=#{inspect(message)}")
         {:reply, {:error, :badmsg}, state}
     end
   end
@@ -78,13 +77,13 @@ defmodule Liblink.Socket.Monitor do
         Impl.down(state, tag)
 
       {:EXIT, _from, reason} ->
-        _ = Logger.debug("socket.monitor is exiting", metadata: [data: [reason: reason]])
+        Logger.debug("socket.monitor is exiting. reason=#{reason}")
 
         state = Impl.stop(state)
         {:stop, reason, state}
 
       message ->
-        _ = Logger.warn("unexpected message", metadata: [data: [message: message]])
+        Logger.warn("unexpected message. message=#{inspect(message)}")
         {:noreply, state}
     end
   end

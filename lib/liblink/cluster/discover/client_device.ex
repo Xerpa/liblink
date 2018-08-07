@@ -13,12 +13,11 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Discover.ClientDevice do
+  use Liblink.Logger
   use Liblink.Cluster.Database.Hook
 
   alias Liblink.Cluster.Database.Query
   alias Liblink.Cluster.Protocol.Dealer
-
-  require Logger
 
   @impl true
   def after_hook(_pid, tid, event) do
@@ -61,11 +60,11 @@ defmodule Liblink.Cluster.Discover.ClientDevice do
       :ok
     catch
       :exit, {:noproc, {GenServer, :call, _}} ->
-        _ = Logger.warn("could not attach device to dealer: noproc")
+        Logger.warn("could not attach device to dealer: noproc")
         :error
 
       :exit, {:timeout, {GenServer, :call, _}} ->
-        _ = Logger.warn("could not attach device to dealer: timeout")
+        Logger.warn("could not attach device to dealer: timeout")
         :error
     end
   end

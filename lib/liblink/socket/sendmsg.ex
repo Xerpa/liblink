@@ -14,12 +14,11 @@
 
 defmodule Liblink.Socket.Sendmsg do
   use GenServer
+  use Liblink.Logger
 
   alias Liblink.Timeout
   alias Liblink.Socket.Shared
   alias Liblink.Socket.Sendmsg.Impl
-
-  require Logger
 
   import Liblink.Guards
 
@@ -102,11 +101,7 @@ defmodule Liblink.Socket.Sendmsg do
         Impl.sendmsg(message, deadline, :sync, state)
 
       message ->
-        _ =
-          Logger.warn(
-            "[socket.sendmsg] ignoring unexpected message",
-            metadata: [data: [message: message]]
-          )
+        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -122,11 +117,7 @@ defmodule Liblink.Socket.Sendmsg do
         Impl.sendmsg(message, deadline, :async, state)
 
       message ->
-        _ =
-          Logger.warn(
-            "[socket.sendmsg] ignoring unexpected message",
-            metadata: [data: [message: message]]
-          )
+        Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
         {:noreply, state}
     end
@@ -134,11 +125,7 @@ defmodule Liblink.Socket.Sendmsg do
 
   @impl true
   def handle_info(message, state) do
-    _ =
-      Logger.warn(
-        "[socket.sendmsg] ignoring unexpected message",
-        metadata: [data: [message: message]]
-      )
+    Logger.warn("ignoring unexpected message. message=#{inspect(message)}")
 
     {:noreply, state}
   end

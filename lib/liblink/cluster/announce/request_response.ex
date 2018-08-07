@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Cluster.Announce.RequestResponse do
+  use Liblink.Logger
+
   alias Liblink.Random
   alias Liblink.Socket
   alias Liblink.Socket.Device
@@ -27,8 +29,6 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
   alias Liblink.Cluster.Protocol.Router
 
   import Liblink.Data.Macros
-
-  require Logger
 
   # XXX: can't make dialyzer accept these functions
   @dialyzer [{:nowarn_function, new: 2, new!: 2}]
@@ -116,20 +116,14 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
     else
       case Agent.service_register(state.consul, service) do
         {:ok, %{status: 200}} ->
-          _ =
-            Logger.info(
-              "successfully registered service on consul",
-              metadata: [data: [service: service.name]]
-            )
+          Logger.info("successfully registered service on consul: service=#{service.name}")
 
           {:ok, service}
 
         error ->
-          _ =
-            Logger.warn(
-              "error registering service on consul",
-              metadata: [data: [service: service.name], error: error]
-            )
+          Logger.warn(
+            "error registering service on consul: service=#{service.name} error=#{inspect(error)}"
+          )
 
           :error
       end
@@ -145,11 +139,9 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
         :ok
 
       error ->
-        _ =
-          Logger.warn(
-            "error invoking check_pass on consul",
-            metadata: [data: [service: service.name, error: error]]
-          )
+        Logger.warn(
+          "error invoking check_pass on consul. service=#{service.name} error=#{inspect(error)}"
+        )
 
         :error
     end

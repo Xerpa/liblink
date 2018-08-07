@@ -13,12 +13,12 @@
 # limitations under the License.
 
 defmodule Liblink.Socket.Monitor.Impl do
+  use Liblink.Logger
+
   alias Liblink.Nif
   alias Liblink.Socket.Device
   alias Liblink.Socket.Sendmsg
   alias Liblink.Socket.Recvmsg
-
-  require Logger
 
   @type state_t :: %{procs: map, socks: map}
 

@@ -38,6 +38,10 @@ defmodule Liblink.Client do
            {:no_service, Query.find_discover_devices(tid, cluster_id, :request_response)},
          {_, {:ok, client}} <-
            {:no_service, Query.find_discover_client(tid, cluster_id, :request_response)} do
+      request_id =
+        :crypto.strong_rand_bytes(16)
+        |> Base.encode16(case: :lower)
+
       endpoints =
         Enum.reduce(services, MapSet.new(), fn svc, acc ->
           tags = MapSet.new(svc.tags)
@@ -59,7 +63,11 @@ defmodule Liblink.Client do
           end
         end)
 
-      message = Message.meta_put(message, "ll-service-id", {service_id, service_fn})
+      message =
+        message
+        |> Message.meta_put("ll-timestamp", DateTime.utc_now())
+        |> Message.meta_put("ll-request-id", request_id)
+        |> Message.meta_put("ll-service-id", {service_id, service_fn})
 
       Dealer.request(
         client,
