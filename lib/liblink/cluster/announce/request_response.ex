@@ -40,7 +40,7 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
   def_bang(:new, 2)
 
   @spec new(Consul.t(), Cluster.t()) :: {:ok, t} | :error
-  def new(consul = %Tesla.Client{}, cluster = %Cluster{announce: %Announce{}}) do
+  def new(consul = %Consul{}, cluster = %Cluster{announce: %Announce{}}) do
     net_host = Cfg.protocol_host(:request_response)
     net_port = Cfg.protocol_port(:request_response)
     endpoint = Endpoint.tcp_endpoint(net_host, net_port)

@@ -22,8 +22,9 @@ defmodule Liblink.Data.Consul.Config do
           {:endpoint, String.t()}
           | {:token, String.t() | nil}
           | {:timeout, non_neg_integer()}
+          | {:datacenters, [String.t()]}
 
-  defstruct [:endpoint, :token, :timeout]
+  defstruct [:endpoint, :token, :timeout, :datacenters]
 
   @spec new!() :: t
   def_bang(:new, 0)
@@ -41,8 +42,10 @@ defmodule Liblink.Data.Consul.Config do
     with {:ok, endpoint} <-
            Keyword.maybe_fetch_binary(options, :endpoint, "http://localhost:8500"),
          {:ok, token} <- Keyword.maybe_fetch_binary(options, :token, nil),
+         {:ok, datacenters} <- Keyword.fetch_list(options, :datacenters, []),
          {:ok, timeout} <- Keyword.fetch_integer(options, :timeout, 1_000) do
-      {:ok, %__MODULE__{endpoint: endpoint, token: token, timeout: timeout}}
+      {:ok,
+       %__MODULE__{endpoint: endpoint, token: token, timeout: timeout, datacenters: datacenters}}
     end
   end
 end

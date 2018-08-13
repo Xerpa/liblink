@@ -27,7 +27,7 @@ defmodule Liblink.Cluster.Discover.Service do
   @type t :: map
 
   @spec new(Database.t(), Consul.t(), Cluster.t(), Service.protocol()) :: {:ok, t}
-  def new(pid, consul = %Tesla.Client{}, cluster = %Cluster{discover: %Discover{}}, protocol) do
+  def new(pid, consul = %Consul{}, cluster = %Cluster{discover: %Discover{}}, protocol) do
     {:ok, %{database: pid, consul: consul, cluster: cluster, protocol: protocol}}
   end
 
