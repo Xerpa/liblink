@@ -33,7 +33,8 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
     {:ok, tid} = Database.get_tid(pid)
     :ok = Database.subscribe(pid, self())
 
-    consul = Consul.client(Config.new!())
+    datacenters = Map.get(env, :datacenters, [])
+    consul = Consul.client(Config.new!(datacenters: datacenters))
 
     cluster =
       Cluster.new!(
@@ -120,6 +121,23 @@ defmodule Liblink.Cluster.Discover.ServiceTest do
     assert cluster == remote_service.cluster
     assert meta == remote_service.metadata
     assert tags == remote_service.tags
+  end
+
+  @tag datacenters: ["dc1"]
+  test "find service by datacenter", %{
+    cluster: cluster,
+    discover_worker: discover_worker,
+    announce_worker: announce_worker
+  } do
+    cluster_id = cluster.id
+
+    RequestResponse.exec(announce_worker)
+    DiscoverService.exec(discover_worker)
+
+    assert_receive {Database, _pid, _tid,
+                    {:put, {:discover, :services, ^cluster_id, :request_response}, nil, services}}
+
+    assert 1 == MapSet.size(services)
   end
 
   test "when a service is failing", %{

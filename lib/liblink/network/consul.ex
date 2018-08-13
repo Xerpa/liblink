@@ -15,15 +15,20 @@
 defmodule Liblink.Network.Consul do
   alias Liblink.Data.Consul.Config
 
-  @type t :: Tesla.Client.t()
+  defstruct [:agent, :config]
+
+  @type t :: %__MODULE__{}
 
   @spec client(Config.t()) :: t
   def client(config = %Config{}) do
-    Tesla.build_client([
-      {Tesla.Middleware.BaseUrl, config.endpoint},
-      {Tesla.Middleware.Timeout, timeout: config.timeout},
-      {Tesla.Middleware.Headers, [{"x-consul-token", config.token}]},
-      {Tesla.Middleware.JSON, []}
-    ])
+    client =
+      Tesla.build_client([
+        {Tesla.Middleware.BaseUrl, config.endpoint},
+        {Tesla.Middleware.Timeout, timeout: config.timeout},
+        {Tesla.Middleware.Headers, [{"x-consul-token", config.token}]},
+        {Tesla.Middleware.JSON, []}
+      ])
+
+    %__MODULE__{agent: client, config: config}
   end
 end

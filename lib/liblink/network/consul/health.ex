@@ -23,7 +23,7 @@ defmodule Liblink.Network.Consul.Health do
           | {:state, String.t()}
 
   @spec service(Consul.t(), String.t(), [option]) :: Tesla.Env.result()
-  def service(client = %Tesla.Client{}, service, params \\ []) do
+  def service(client = %Consul{}, service, params \\ []) do
     params =
       Enum.map(params, fn {key, value} ->
         if key == :node_meta do
@@ -33,6 +33,6 @@ defmodule Liblink.Network.Consul.Health do
         end
       end)
 
-    Tesla.get(client, "/v1/health/service/#{service}", query: params)
+    Tesla.get(client.agent, "/v1/health/service/#{service}", query: params)
   end
 end
