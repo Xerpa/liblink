@@ -42,16 +42,34 @@ defmodule Liblink.Cluster.Discover.Service do
     protocol = state.protocol
     service_name = Naming.service_name(cluster, protocol)
 
-    _ =
-      case Consul.Health.service(state.consul, service_name, state: "passing") do
-        {:ok, %{status: 200, body: services}} when is_list(services) ->
-          handle_service(state, services)
-
-        _reply ->
-          Liblink.Logger.warn("error reading services from consul")
+    datacenters =
+      case state.consul.config.datacenters do
+        [] -> [""]
+        datacenters -> datacenters
       end
 
-    state
+    health_reply =
+      Enum.reduce_while(datacenters, {:ok, []}, fn datacenter, {:ok, acc_services} ->
+        query = [dc: datacenter, state: "passing"]
+
+        case Consul.Health.service(state.consul, service_name, query) do
+          {:ok, %{status: 200, body: services}} when is_list(services) ->
+            {:cont, {:ok, services ++ acc_services}}
+
+          error ->
+            {:halt, :error}
+        end
+      end)
+
+    case health_reply do
+      {:ok, services} ->
+        handle_service(state, services)
+        state
+
+      _error ->
+        Liblink.Logger.warn("error reading services from consul")
+        state
+    end
   end
 
   @spec handle_service(t, [map]) :: :ok
