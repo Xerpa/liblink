@@ -5,7 +5,7 @@ defmodule Test.Liblink.TestService do
     echo
   end
 
-  def echo(request) do
+  def echo(request = %Message{}) do
     {:ok, request}
   end
 

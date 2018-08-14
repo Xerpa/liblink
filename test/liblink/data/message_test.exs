@@ -22,7 +22,19 @@ defmodule Liblink.Data.MessageTest do
     check all payload <- term(),
               metadata <- map_of(binary(), term()) do
       message = Message.new(payload, metadata)
+      assert {:ok, message} == Message.decode(Message.encode({:ok, message}))
       assert {:ok, message} == Message.decode(Message.encode(message))
+    end
+  end
+
+  property "encode . decode = id | error" do
+    check all payload <- term(),
+              error <- atom(:alphanumeric),
+              metadata <- map_of(binary(), term()) do
+      message = Message.new(payload, metadata)
+
+      assert {:ok, {:error, error, message}} ==
+               Message.decode(Message.encode({:error, error, message}))
     end
   end
 

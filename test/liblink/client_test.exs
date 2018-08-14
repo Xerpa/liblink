@@ -71,8 +71,7 @@ defmodule Liblink.ClientTest do
   end
 
   test "call a discovered service", %{cluster: cluster, service: service} do
-    assert {:ok, message} = Client.request(cluster.id, service.id, :echo, Message.new(nil))
-    assert :success == Message.meta_get(message, "ll-status")
+    assert {:ok, %Message{}} = Client.request(cluster.id, service.id, :echo, Message.new(nil))
   end
 
   @tag healthy?: false
@@ -91,23 +90,19 @@ defmodule Liblink.ClientTest do
   end
 
   test "requesting and unknown function", %{cluster: cluster, service: service} do
-    assert {:ok, reply} = Client.request(cluster.id, service.id, :unknown, Message.new(nil))
-    assert :failure == Message.meta_get(reply, "ll-status")
-    assert {:error, :not_found} == reply.payload
+    assert {:error, :not_found, %Message{}} =
+             Client.request(cluster.id, service.id, :unknown, Message.new(nil))
   end
 
   test "requesting an misbehaving service", %{cluster: cluster, service: service} do
-    assert {:ok, reply} = Client.request(cluster.id, service.id, :misbehaving, Message.new(nil))
-    assert :failure == Message.meta_get(reply, "ll-status")
-    assert {:error, :bad_service} == reply.payload
+    assert {:error, :bad_service, %Message{}} =
+             Client.request(cluster.id, service.id, :misbehaving, Message.new(nil))
   end
 
   test "request a service that raises", %{cluster: cluster, service: service} do
-    assert {:ok, reply} =
+    assert {:error, :except, reply} =
              Client.request(cluster.id, service.id, :exception, Message.new("except message"))
 
-    assert :failure == Message.meta_get(reply, "ll-status")
-
-    assert {:error, {:except, %RuntimeError{message: "except message"}}} = reply.payload
+    assert %RuntimeError{message: "except message"} = reply.payload
   end
 end

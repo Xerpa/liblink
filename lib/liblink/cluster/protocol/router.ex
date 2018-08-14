@@ -53,7 +53,7 @@ defmodule Liblink.Cluster.Protocol.Router do
 
   @spec dispatch(iodata, t) :: iodata
   def dispatch([routekey | [requestid | message]], state = %__MODULE__{}) do
-    {status, reply} =
+    reply =
       with {_, {:ok, message}} <- {:codec, Message.decode(message)},
            {_, {:ok, {service_id, _}}} <-
              {:service, Message.meta_fetch(message, "ll-service-id")},
@@ -61,22 +61,19 @@ defmodule Liblink.Cluster.Protocol.Router do
         call_service(state.cluster_id, service, message)
       else
         {:codec, _term} ->
-          {:failure, Message.new({:error, :io_error})}
+          {:error, :io_error, Message.new(nil)}
 
         {:service, _term} ->
-          {:failure, Message.new({:error, :not_found})}
+          {:error, :not_found, Message.new(nil)}
       end
 
-    payload =
-      reply
-      |> Message.meta_put("ll-status", status)
-      |> Message.meta_put("ll-timestamp", DateTime.utc_now())
-      |> Message.encode()
+    payload = Message.encode(reply)
 
     [routekey | [requestid | payload]]
   end
 
-  @spec call_service(Cluster.id(), Service.t(), Message.t()) :: {:success | :failure, Message.t()}
+  @spec call_service(Cluster.id(), Service.t(), Message.t()) ::
+          {:ok, Message.t()} | {:error, atom, Message.t()}
   defp call_service(cluster_id, service = %Service{}, request = %Message{}) do
     exports = service.exports
 
@@ -90,53 +87,114 @@ defmodule Liblink.Cluster.Protocol.Router do
       try do
         case apply(exports.module, target, [request]) do
           {:ok, reply = %Message{}} ->
-            debug =
-              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
-                inspect(reply)
-              }"
+            Liblink.Logger.info(fn ->
+              Enum.join(
+                [
+                  "processing router request: success",
+                  "cluster_id=#{cluster_id}",
+                  "service=#{inspect(service)}",
+                  "request=#{inspect(request)}",
+                  "response=#{inspect(reply)}"
+                ],
+                " "
+              )
+            end)
 
-            Liblink.Logger.info("processing router request: success" <> debug)
+            {:ok, message(reply)}
 
-            {:success, reply}
+          {:error, error} when is_atom(error) ->
+            Liblink.Logger.info(fn ->
+              Enum.join(
+                [
+                  "processing router request: failure",
+                  "cluster_id=#{cluster_id}",
+                  "service=#{inspect(service)}",
+                  "request=#{inspect(request)}",
+                  "error=#{error}"
+                ],
+                " "
+              )
+            end)
 
-          {:error, reply = %Message{}} ->
-            debug =
-              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
-                inspect(reply)
-              }"
+            {:error, error, message(nil)}
 
-            Liblink.Logger.info("processing router request: failure" <> debug)
+          {:error, error, reply = %Message{}} when is_atom(error) ->
+            Liblink.Logger.info(fn ->
+              Enum.join(
+                [
+                  "processing router request: failure",
+                  "cluster_id=#{cluster_id}",
+                  "service=#{inspect(service)}",
+                  "request=#{inspect(request)}",
+                  "error=#{error}",
+                  "reply=#{inspect(reply)}"
+                ],
+                " "
+              )
+            end)
 
-            {:failure, reply}
+            {:error, error, message(reply)}
 
           term ->
-            debug =
-              " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} response=#{
-                inspect(term)
-              }"
+            Liblink.Logger.warn(fn ->
+              Enum.join(
+                [
+                  "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, atom} | {:error, atom, Message.t}",
+                  "cluster_id=#{cluster_id}",
+                  "service=#{inspect(service)}",
+                  "request=#{inspect(request)}",
+                  "reply=#{inspect(term)}"
+                ],
+                " "
+              )
+            end)
 
-            Liblink.Logger.warn(
-              "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, Message.t} " <>
-                debug
-            )
-
-            {:failure, Message.new({:error, :bad_service})}
+            {:error, :bad_service, message(nil)}
         end
       rescue
         except ->
           stacktrace = System.stacktrace()
 
-          debug =
-            " cluster_id=#{cluster_id} service=#{inspect(service)} request=#{inspect(request)} except=#{
-              inspect(except)
-            }"
+          Liblink.Logger.warn(fn ->
+            Enum.join(
+              [
+                "exception executing router",
+                "cluster_id=#{cluster_id}",
+                "service=#{inspect(service)}",
+                "request=#{inspect(request)}",
+                "except=#{inspect(except)}",
+                "\n" <> Exception.format_stacktrace(stacktrace)
+              ],
+              " "
+            )
+          end)
 
-          stacktrace_fmt = Exception.format_stacktrace(stacktrace)
-          Liblink.Logger.warn("error executing router" <> debug <> "\n" <> stacktrace_fmt)
-          {:failure, Message.new({:error, {:except, except}})}
+          {:error, :except, message(except)}
       end
     else
-      {:failure, Message.new({:error, :not_found})}
+      Liblink.Logger.info(fn ->
+        Enum.join(
+          [
+            "service not found",
+            "cluster_id=#{cluster_id}",
+            "service=#{inspect(service)}",
+            "request=#{inspect(request)}"
+          ],
+          " "
+        )
+      end)
+
+      {:error, :not_found, Message.new(nil)}
     end
+  end
+
+  defp message(message = %Message{}) do
+    Message.meta_put(message, "ll-timestamp", DateTime.utc_now())
+  end
+
+  defp message(term) do
+    term
+    |> Message.new()
+    |> message()
   end
 end
