@@ -50,11 +50,10 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       {:ok, [router: router]}
     end
 
-    test "response includes date/status header", %{router: router} do
+    test "response includes date header", %{router: router} do
       now = DateTime.utc_now()
       reply = ping_request(router)
 
-      assert {:ok, :success} = Message.meta_fetch(reply, "ll-status")
       assert {:ok, date} = Message.meta_fetch(reply, "ll-timestamp")
       assert 1 >= DateTime.diff(now, date, :seconds)
     end
@@ -63,40 +62,28 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       reply_with = {:ok, Message.new(nil, %{foobar: :term})}
       reply = echo_request(router, {:echo, reply_with})
 
-      assert %{
-               "ll-status" => :success,
-               "foobar" => :term
-             } = reply.metadata
+      assert %{"foobar" => :term} = reply.metadata
     end
 
     test "missing service", %{router: router} do
-      reply = request(Message.new(nil, %{"ll-service-id" => {"missing", :echo}}), router)
-
-      assert {:error, :not_found} == reply.payload
-      assert %{"ll-status" => :failure} = reply.metadata
+      assert {:error, :not_found, %Message{}} =
+               request(Message.new(nil, %{"ll-service-id" => {"missing", :echo}}), router)
     end
 
     test "missing function", %{router: router} do
-      reply = request(Message.new(nil, %{"ll-service-id" => {"liblink", :missing}}), router)
-
-      assert {:error, :not_found} == reply.payload
-      assert %{"ll-status" => :failure} = reply.metadata
+      assert {:error, :not_found, %Message{}} =
+               request(Message.new(nil, %{"ll-service-id" => {"liblink", :missing}}), router)
     end
 
     test "service returning error", %{router: router} do
-      reply_with = {:error, Message.new(:payload)}
-      reply = echo_request(router, {:echo, reply_with})
-
+      reply_with = {:error, :some_error, Message.new(:payload)}
+      assert {:error, :some_error, reply} = echo_request(router, {:echo, reply_with})
       assert :payload == reply.payload
-      assert %{"ll-status" => :failure} = reply.metadata
     end
 
     test "service misbehaving", %{router: router} do
       reply_with = :bad_return
-      reply = echo_request(router, {:echo, reply_with})
-
-      assert {:error, :bad_service} == reply.payload
-      assert %{"ll-status" => :failure} = reply.metadata
+      assert {:error, :bad_service, %Message{}} = echo_request(router, {:echo, reply_with})
     end
   end
 

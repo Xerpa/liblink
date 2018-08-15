@@ -151,14 +151,11 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
     test "requests a service", %{dealer: dealer, ping_service: headers} do
       assert {:ok, message} = Dealer.request(dealer, Message.new(:ping, headers))
-      assert {:ok, :success} == Message.meta_fetch(message, "ll-status")
       assert :pong == message.payload
     end
 
     test "request a missing service", %{dealer: dealer} do
-      assert {:ok, message} = Dealer.request(dealer, Message.new(nil))
-      assert {:ok, :failure} == Message.meta_fetch(message, "ll-status")
-      assert {:error, :not_found} == message.payload
+      assert {:error, :not_found, %Message{}} = Dealer.request(dealer, Message.new(nil))
     end
 
     test "can user dealer concurrently", %{dealer: dealer, echo_service: headers} do
@@ -174,7 +171,6 @@ defmodule Liblink.Cluster.Protocol.Dealer.DealerTest do
 
       for {id, reply} <- replies do
         assert {:ok, reply = %Message{}} = reply
-        assert {:ok, :success} = Message.meta_fetch(reply, "ll-status")
         assert id == reply.payload
       end
     end

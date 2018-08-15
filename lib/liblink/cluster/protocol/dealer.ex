@@ -55,7 +55,11 @@ defmodule Liblink.Cluster.Protocol.Dealer do
   end
 
   @spec request(t, Message.t(), [Impl.sendmsg_opt()]) ::
-          {:ok, Message.t()} | {:error, :timeout} | {:error, :io_error} | {:error, :no_connection}
+          {:ok, Message.t()}
+          | {:error, atom, Message.t()}
+          | {:error, :timeout}
+          | {:error, :io_error}
+          | {:error, :no_connection}
   def request(dealer, message = %Message{}, opts \\ [])
       when is_pid(dealer) and is_list(opts) do
     # FIXME: this might actually take ~ (2 * timeout_in_ms)
@@ -82,8 +86,14 @@ defmodule Liblink.Cluster.Protocol.Dealer do
       receive do
         {^tag, reply} ->
           case Message.decode(reply) do
-            :error -> {:error, :io_error}
-            reply -> reply
+            {:ok, reply = %Message{}} ->
+              {:ok, reply}
+
+            {:ok, {:error, error, reply = %Message{}}} when is_atom(error) ->
+              {:error, error, reply}
+
+            _otherwise ->
+              {:error, :io_error}
           end
       after
         timeout -> {:error, :timeout}

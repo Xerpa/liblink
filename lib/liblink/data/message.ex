@@ -31,11 +31,26 @@ defmodule Liblink.Data.Message do
     Codec.encode({@v0, message.metadata, message.payload})
   end
 
+  def encode({:ok, message = %__MODULE__{}}) do
+    Codec.encode({@v0, message.metadata, message.payload})
+  end
+
+  def encode({:error, error, message = %__MODULE__{}}) when is_atom(error) do
+    Codec.encode({@v0, :error, error, message.metadata, message.payload})
+  end
+
   def_bang(:decode, 1)
 
   def decode(message) do
-    with {:ok, {@v0, metadata, payload}} when is_map(metadata) <- Codec.decode(message) do
-      {:ok, %__MODULE__{metadata: metadata, payload: payload}}
+    case Codec.decode(message) do
+      {:ok, {@v0, metadata, payload}} when is_map(metadata) ->
+        {:ok, %__MODULE__{metadata: metadata, payload: payload}}
+
+      {:ok, {@v0, :error, error, metadata, payload}} when is_map(metadata) and is_atom(error) ->
+        {:ok, {:error, error, %__MODULE__{metadata: metadata, payload: payload}}}
+
+      _otherwise ->
+        :error
     end
   end
 

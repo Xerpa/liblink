@@ -25,15 +25,23 @@ defmodule Liblink.Logger do
   @spec log(
           %{src: String.t(), fun: String.t()},
           :debug | :info | :warn | :error,
-          String.t()
+          String.t() | (() -> String.t())
         ) :: nil
-  def log(env, level, message) when is_atom(level) and is_binary(message) do
+  def log(env, level, message)
+      when is_atom(level) and (is_binary(message) or is_function(message, 0)) do
     backend = Application.get_env(:liblink, :logger, &Logger.log/2)
 
     if backend do
       apply(backend, [
         level,
         fn ->
+          message =
+            if is_function(message, 0) do
+              message.()
+            else
+              message
+            end
+
           Enum.join(["[liblink][#{env.fun}] #{env.src}", message], "\n")
         end
       ])
