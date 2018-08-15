@@ -56,7 +56,7 @@ defmodule Liblink.Cluster.Discover.Service do
           {:ok, %{status: 200, body: services}} when is_list(services) ->
             {:cont, {:ok, services ++ acc_services}}
 
-          error ->
+          _error ->
             {:halt, :error}
         end
       end)
