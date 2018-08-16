@@ -18,7 +18,9 @@ defmodule Liblink.Cfg do
     with netcfg when is_list(netcfg) <- Application.get_env(:liblink, :netcfg, []),
          protocfg when is_list(protocfg) <- Keyword.get(netcfg, :request_response, []),
          host when is_binary(host) <- Keyword.get(protocfg, :host) do
-      host
+      if String.match?(host, ~r/^[0-9]{1,3}(\.[0-9]{1,3}){3}/) do
+        host
+      end
     else
       _ -> nil
     end
