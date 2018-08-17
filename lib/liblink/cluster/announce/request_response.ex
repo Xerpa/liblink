@@ -56,7 +56,7 @@ defmodule Liblink.Cluster.Announce.RequestResponse do
                  id: "service:#{service_id}",
                  name: "service:#{service_name}",
                  ttl: [{10, :s}],
-                 deregister_critical_service_after: [{1, :h}]
+                 deregister_critical_service_after: [{5, :m}]
                ),
              {:ok, service} <-
                Service.new(
