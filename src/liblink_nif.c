@@ -82,6 +82,8 @@ int _liblink_erlnif_load (ErlNifEnv *env, void **priv, const ERL_NIF_TERM info)
 {
   LIBLINK_UNUSED(info);
 
+  zsys_handler_set(NULL);
+
   *priv = enif_open_resource_type(env, "liblink_nif", "Elixir.Liblink.Nif", _liblink_erlnif_destroy, ERL_NIF_RT_CREATE, NULL);
   if (*priv == NULL)
   { return(-1); }
