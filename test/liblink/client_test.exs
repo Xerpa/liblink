@@ -100,7 +100,7 @@ defmodule Liblink.ClientTest do
   end
 
   test "request a service that raises", %{cluster: cluster, service: service} do
-    assert {:error, :except, reply} =
+    assert {:error, :internal_error, reply} =
              Client.request(cluster.id, service.id, :exception, Message.new("except message"))
 
     assert %RuntimeError{message: "except message"} = reply.payload

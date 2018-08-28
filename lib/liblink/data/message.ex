@@ -35,6 +35,10 @@ defmodule Liblink.Data.Message do
     Codec.encode({@v0, message.metadata, message.payload})
   end
 
+  def encode({:error, error}) when is_atom(error) do
+    Codec.encode({@v0, :error, error, %{}, nil})
+  end
+
   def encode({:error, error, message = %__MODULE__{}}) when is_atom(error) do
     Codec.encode({@v0, :error, error, message.metadata, message.payload})
   end
