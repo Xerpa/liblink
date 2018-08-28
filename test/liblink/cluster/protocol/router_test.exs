@@ -50,14 +50,6 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
       {:ok, [router: router]}
     end
 
-    test "response includes date header", %{router: router} do
-      now = DateTime.utc_now()
-      reply = ping_request(router)
-
-      assert {:ok, date} = Message.meta_fetch(reply, "ll-timestamp")
-      assert 1 >= DateTime.diff(now, date, :seconds)
-    end
-
     test "application metadata", %{router: router} do
       reply_with = {:ok, Message.new(nil, %{foobar: :term})}
       reply = echo_request(router, {:echo, reply_with})
@@ -82,7 +74,7 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
     end
 
     test "service misbehaving", %{router: router} do
-      reply_with = :bad_return
+      reply_with = :misbehaving
       assert {:error, :bad_service, %Message{}} = echo_request(router, {:echo, reply_with})
     end
   end
@@ -98,12 +90,6 @@ defmodule Liblink.Cluster.Protocol.RouterTest do
     payload
     |> Message.new()
     |> Message.meta_put_new("ll-service-id", {"liblink", :echo})
-    |> request(router)
-  end
-
-  defp ping_request(router) do
-    Message.new(:ping)
-    |> Message.meta_put_new("ll-service-id", {"liblink", :ping})
     |> request(router)
   end
 end

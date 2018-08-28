@@ -58,7 +58,7 @@ defmodule Liblink.Cluster.Protocol.Router do
            {_, {:ok, {service_id, _}}} <-
              {:service, Message.meta_fetch(message, "ll-service-id")},
            {_, {:ok, service}} <- {:service, Map.fetch(state.services, service_id)} do
-        call_service(state.cluster_id, service, message)
+        call_service(service, message)
       else
         {:codec, _term} ->
           {:error, :io_error, Message.new(nil)}
@@ -72,9 +72,8 @@ defmodule Liblink.Cluster.Protocol.Router do
     [routekey | [requestid | payload]]
   end
 
-  @spec call_service(Cluster.id(), Service.t(), Message.t()) ::
-          {:ok, Message.t()} | {:error, atom, Message.t()}
-  defp call_service(cluster_id, service = %Service{}, request = %Message{}) do
+  @spec call_service(Service.t(), Message.t()) :: {:ok, Message.t()} | {:error, atom, Message.t()}
+  defp call_service(service = %Service{}, request = %Message{}) do
     exports = service.exports
 
     target =
@@ -84,117 +83,13 @@ defmodule Liblink.Cluster.Protocol.Router do
       end
 
     if target != nil and exports.restriction.(target) do
-      try do
-        case apply(exports.module, target, [request]) do
-          {:ok, reply = %Message{}} ->
-            Liblink.Logger.info(fn ->
-              Enum.join(
-                [
-                  "processing router request: success",
-                  "cluster_id=#{cluster_id}",
-                  "service=#{inspect(service)}",
-                  "request=#{inspect(request)}",
-                  "response=#{inspect(reply)}"
-                ],
-                " "
-              )
-            end)
-
-            {:ok, message(reply)}
-
-          {:error, error} when is_atom(error) ->
-            Liblink.Logger.info(fn ->
-              Enum.join(
-                [
-                  "processing router request: failure",
-                  "cluster_id=#{cluster_id}",
-                  "service=#{inspect(service)}",
-                  "request=#{inspect(request)}",
-                  "error=#{error}"
-                ],
-                " "
-              )
-            end)
-
-            {:error, error, message(nil)}
-
-          {:error, error, reply = %Message{}} when is_atom(error) ->
-            Liblink.Logger.info(fn ->
-              Enum.join(
-                [
-                  "processing router request: failure",
-                  "cluster_id=#{cluster_id}",
-                  "service=#{inspect(service)}",
-                  "request=#{inspect(request)}",
-                  "error=#{error}",
-                  "reply=#{inspect(reply)}"
-                ],
-                " "
-              )
-            end)
-
-            {:error, error, message(reply)}
-
-          term ->
-            Liblink.Logger.warn(fn ->
-              Enum.join(
-                [
-                  "ignoring response from misbehaving router. response should be {:ok, Message.t} | {:error, atom} | {:error, atom, Message.t}",
-                  "cluster_id=#{cluster_id}",
-                  "service=#{inspect(service)}",
-                  "request=#{inspect(request)}",
-                  "reply=#{inspect(term)}"
-                ],
-                " "
-              )
-            end)
-
-            {:error, :bad_service, message(nil)}
-        end
-      rescue
-        except ->
-          stacktrace = System.stacktrace()
-
-          Liblink.Logger.warn(fn ->
-            Enum.join(
-              [
-                "exception executing router",
-                "cluster_id=#{cluster_id}",
-                "service=#{inspect(service)}",
-                "request=#{inspect(request)}",
-                "except=#{inspect(except)}",
-                "\n" <> Exception.format_stacktrace(stacktrace)
-              ],
-              " "
-            )
-          end)
-
-          {:error, :except, message(except)}
+      if function_exported?(exports.module, :__advise__, 2) do
+        apply(exports.module, :__advise__, [target, request])
+      else
+        Liblink.Middleware.advise_ext(exports.module, target, request)
       end
     else
-      Liblink.Logger.info(fn ->
-        Enum.join(
-          [
-            "service not found",
-            "cluster_id=#{cluster_id}",
-            "service=#{inspect(service)}",
-            "request=#{inspect(request)}"
-          ],
-          " "
-        )
-      end)
-
-      {:error, :not_found, Message.new(nil)}
+      {:error, :not_found}
     end
-  end
-
-  defp message(message = %Message{}) do
-    Message.meta_put(message, "ll-timestamp", DateTime.utc_now())
-  end
-
-  defp message(term) do
-    term
-    |> Message.new()
-    |> message()
   end
 end
