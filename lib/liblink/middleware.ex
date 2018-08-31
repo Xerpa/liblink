@@ -22,7 +22,6 @@ defmodule Liblink.Middleware do
 
   defmacro __using__(_args) do
     quote do
-      @behaviour Liblink.Middleware
       @before_compile Liblink.Middleware
 
       import Liblink.Middleware, only: [middleware: 1, middleware: 2]

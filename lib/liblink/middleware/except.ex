@@ -13,8 +13,9 @@
 # limitations under the License.
 
 defmodule Liblink.Middleware.Except do
+  @behaviour Liblink.Middleware
+
   use Liblink.Logger
-  use Liblink.Middleware
 
   alias Liblink.Data.Message
 

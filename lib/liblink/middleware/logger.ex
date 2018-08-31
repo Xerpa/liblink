@@ -13,6 +13,8 @@
 # limitations under the License.
 
 defmodule Liblink.Middleware.Logger do
+  @behaviour Liblink.Middleware
+
   use Liblink.Logger
   use Liblink.Middleware
 
