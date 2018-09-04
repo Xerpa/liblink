@@ -23,19 +23,19 @@ defmodule Liblink.Middleware.LoggerTest do
     test "log success when ans = {:ok, _term}" do
       logline =
         capture_log(fn ->
-          Logger.call(:foobar, :any, fn _ -> {:ok, :any} end)
+          Logger.call(:foobar, {:mod, :fun}, :any, fn _ -> {:ok, :any} end)
         end)
 
-      assert String.contains?(logline, "success")
+      assert String.contains?(logline, "mod.fun success")
     end
 
     test "log failure when ans != {:ok, _term}" do
       logline =
         capture_log(fn ->
-          Logger.call(:foobar, :any, fn _ -> {:error, :error} end)
+          Logger.call(:foobar, {:mod, :fun}, :any, fn _ -> {:error, :error} end)
         end)
 
-      assert String.contains?(logline, "failure")
+      assert String.contains?(logline, "mod.fun failure")
     end
   end
 end

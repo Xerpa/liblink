@@ -17,7 +17,7 @@ defmodule Liblink.Middleware do
 
   @type continue :: (Message.t() -> {:ok, Message.t()} | {:error, atom} | {:error, atom, term})
 
-  @callback call(Message.t(), term, continue) ::
+  @callback call(Message.t(), {module, atom}, term, continue) ::
               {:ok, Message.t()} | {:error, atom} | {:error, atom, term}
 
   defmacro __using__(_args) do
@@ -112,6 +112,6 @@ defmodule Liblink.Middleware do
 
   def advise_function([{mod, data} | mod_rest], function, message) do
     continue = fn message -> advise_function(mod_rest, function, message) end
-    apply(mod, :call, [message, data, continue])
+    apply(mod, :call, [message, function, data, continue])
   end
 end

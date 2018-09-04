@@ -25,14 +25,14 @@ defmodule Liblink.Middleware.ExceptTest do
       expected = {:error, :internal_error, Message.new(%RuntimeError{message: "foobar"})}
 
       assert expected ==
-               Except.call(Message.new(nil), :unused, fn _ ->
+               Except.call(Message.new(nil), {:mod, :fun}, :unused, fn _ ->
                  raise(RuntimeError, message: "foobar")
                end)
     end
 
     test "bypass otherwise" do
       assert {:ok, nil} ==
-               Except.call(Message.new(nil), :unused, fn _ ->
+               Except.call(Message.new(nil), {:mod, :fun}, :unused, fn _ ->
                  {:ok, nil}
                end)
     end

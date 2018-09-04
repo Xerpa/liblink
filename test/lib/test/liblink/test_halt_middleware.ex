@@ -19,7 +19,7 @@ defmodule Liblink.TestHaltMiddleware do
 
   middleware(Liblink.TestHaltMiddleware)
 
-  def call(_message, _data, _continue) do
+  def call(_message, _function, _data, _continue) do
     {:error, :halt}
   end
 

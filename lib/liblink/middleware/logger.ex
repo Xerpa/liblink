@@ -19,7 +19,7 @@ defmodule Liblink.Middleware.Logger do
   use Liblink.Middleware
 
   @impl true
-  def call(request, _data, continue) do
+  def call(request, {module, function}, _data, continue) do
     offset = :erlang.monotonic_time()
 
     case continue.(request) do
@@ -27,7 +27,11 @@ defmodule Liblink.Middleware.Logger do
         {duration, unit} = normalize(:erlang.monotonic_time() - offset, :native)
 
         Liblink.Logger.info(fn ->
-          Enum.join(["success", " duration=#{duration}#{unit}", " request=#{inspect(request)}"])
+          Enum.join([
+            "#{module}.#{function} success",
+            " duration=#{duration}#{unit}",
+            " request=#{inspect(request)}"
+          ])
         end)
 
         reply
@@ -37,7 +41,7 @@ defmodule Liblink.Middleware.Logger do
 
         Liblink.Logger.warn(fn ->
           Enum.join([
-            "failure",
+            "#{module}.#{function} failure",
             " duration=#{duration}#{unit}",
             " request=#{inspect(request)}",
             " reply=#{inspect(reply)}"

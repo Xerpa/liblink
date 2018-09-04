@@ -20,7 +20,7 @@ defmodule Liblink.Middleware.Except do
   alias Liblink.Data.Message
 
   @impl true
-  def call(request, _data, continue) do
+  def call(request, {module, function}, _data, continue) do
     try do
       continue.(request)
     rescue
@@ -28,7 +28,7 @@ defmodule Liblink.Middleware.Except do
         stacktrace = Exception.format_stacktrace(System.stacktrace())
 
         Liblink.Logger.warn(fn ->
-          "exception calling service\n" <> stacktrace
+          "exception calling #{module}.#{function}\n" <> stacktrace
         end)
 
         {:error, :internal_error, Message.new(except)}
