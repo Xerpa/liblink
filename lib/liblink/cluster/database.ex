@@ -47,30 +47,30 @@ defmodule Liblink.Cluster.Database do
   end
 
   @spec fetch_sync(t, term) :: {:ok, term} | :error
-  def fetch_sync(pid, key, timeout \\ 1_000) do
+  def fetch_sync(pid, key, timeout \\ 5_000) do
     GenServer.call(pid, {:fetch, key}, timeout)
   end
 
   @spec put(t, term, term) :: :ok | :error
   @spec put(t, term, term, timeout) :: :ok | :error
-  def put(pid, key, val, timeout \\ 1_000) do
+  def put(pid, key, val, timeout \\ 5_000) do
     GenServer.call(pid, {:put, key, val, []}, timeout)
   end
 
   @spec put_new(t, term, term) :: :ok | :error
   @spec put_new(t, term, term, timeout) :: :ok | :error
-  def put_new(pid, key, val, timeout \\ 1_000) do
+  def put_new(pid, key, val, timeout \\ 5_000) do
     hooks = [UniqConstraint]
     GenServer.call(pid, {:put, key, val, hooks}, timeout)
   end
 
   @spec del(t, term, timeout) :: :ok | :error
-  def del(pid, key, timeout \\ 1_000) do
+  def del(pid, key, timeout \\ 5_000) do
     GenServer.call(pid, {:del, key, []}, timeout)
   end
 
   @spec get_tid(t, timeout) :: {:ok, tid}
-  def get_tid(pid, timeout \\ 1_000) do
+  def get_tid(pid, timeout \\ 5_000) do
     GenServer.call(pid, {:get, :tid}, timeout)
   end
 
