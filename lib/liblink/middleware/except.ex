@@ -25,10 +25,10 @@ defmodule Liblink.Middleware.Except do
       continue.(request)
     rescue
       except ->
-        stacktrace = Exception.format_stacktrace(System.stacktrace())
+        message = Exception.format(:error, except, System.stacktrace())
 
         Liblink.Logger.warn(fn ->
-          "exception calling #{module}.#{function}\n" <> stacktrace
+          "exception calling #{module}.#{function}\n\n" <> message
         end)
 
         {:error, :internal_error, Message.new(except)}
