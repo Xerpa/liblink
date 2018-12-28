@@ -39,6 +39,16 @@ defmodule Liblink.Middleware.Logger do
       reply ->
         {duration, unit} = normalize(:erlang.monotonic_time() - offset, :native)
 
+        if match?({:ok, _}, reply) do
+          Liblink.Logger.warn(fn ->
+            Enum.join([
+              "hint: the response needs to ",
+              "be wrapped in `Liblink.Data.Message.new/1`\n",
+              "the response was: #{inspect(reply)}"
+            ])
+          end)
+        end
+
         Liblink.Logger.warn(fn ->
           Enum.join([
             "#{module}.#{function} failure",

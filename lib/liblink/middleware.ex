@@ -15,6 +15,8 @@
 defmodule Liblink.Middleware do
   alias Liblink.Data.Message
 
+  use Liblink.Logger
+
   @type continue :: (Message.t() -> {:ok, Message.t()} | {:error, atom} | {:error, atom, term})
 
   @callback call(Message.t(), {module, atom}, term, continue) ::
@@ -101,6 +103,17 @@ defmodule Liblink.Middleware do
 
         term = {:error, error, %Message{}} when is_atom(error) ->
           term
+
+        term = {:ok, _} ->
+          Liblink.Logger.warn(fn ->
+            Enum.join([
+              "hint: the response needs to ",
+              "be wrapped in `Liblink.Data.Message.new/1`\n",
+              "the response was: #{inspect(term)}"
+            ])
+          end)
+
+          {:error, :bad_service}
 
         _term ->
           {:error, :bad_service}
