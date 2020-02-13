@@ -38,7 +38,7 @@ defmodule Liblink.MixProject do
   defp deps do
     [
       {:jason, "~> 1.0"},
-      {:tesla, "~> 1.0.0"},
+      {:tesla, "~> 1.3.0"},
       {:stream_data, "~> 0.1", only: :test},
       {:dialyxir, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
