@@ -36,9 +36,10 @@ before_install:
 addons:
   apt:
     packages:
-      - git-all
+      - git
       - build-essential
       - libtool
+      - libtool-bin
       - pkg-config
       - autotools-dev
       - autoconf
@@ -64,5 +65,4 @@ elixir:
 otp_release:
   - 20.0
   - 20.1
-  - 20.2
   - 20.3
