@@ -1,8 +1,30 @@
-sudo: required
-
 language: elixir
+dist: bionic
 
+elixir:
+  - 1.6
+otp_release:
+  - 20.0
+  - 20.1
+  - 20.3
+
+sudo: required
 services: docker
+
+addons:
+  apt:
+    packages:
+      - git
+      - build-essential
+      - libtool
+      - libtool-bin
+      - pkg-config
+      - autotools-dev
+      - autoconf
+      - automake
+      - cmake
+      - uuid-dev
+      - libpcre3-dev
 
 before_install:
   - docker pull consul
@@ -33,36 +55,13 @@ before_install:
       rm -rf "$tmpdir"
     )
 
-addons:
-  apt:
-    packages:
-      - git
-      - build-essential
-      - libtool
-      - libtool-bin
-      - pkg-config
-      - autotools-dev
-      - autoconf
-      - automake
-      - cmake
-      - uuid-dev
-      - libpcre3-dev
-
-cache:
-  directories:
-    - _build
-    - deps
-
 script:
   - mix format --check-formatted
   - env liblink_cflags_extra='-Wall -pedantic' mix compile
   - mix dialyzer
   - mix test
 
-elixir:
-  - 1.6
-
-otp_release:
-  - 20.0
-  - 20.1
-  - 20.3
+cache:
+  directories:
+    - _build
+    - deps
