@@ -21,13 +21,16 @@ defmodule Liblink.Network.Consul do
 
   @spec client(Config.t()) :: t
   def client(config = %Config{}) do
-    client =
-      Tesla.build_client([
-        {Tesla.Middleware.BaseUrl, config.endpoint},
-        {Tesla.Middleware.Timeout, timeout: config.timeout},
-        {Tesla.Middleware.Headers, [{"x-consul-token", config.token}]},
-        {Tesla.Middleware.JSON, []}
-      ])
+    middleware = [
+      {Tesla.Middleware.BaseUrl, config.endpoint},
+      {Tesla.Middleware.Timeout, timeout: config.timeout},
+      {Tesla.Middleware.Headers, [{"x-consul-token", config.token}]},
+      {Tesla.Middleware.JSON, []}
+    ]
+
+    adapter = Application.get_env(:liblink, :tesla)[:adapter]
+
+    client = Tesla.client(middleware, adapter)
 
     %__MODULE__{agent: client, config: config}
   end

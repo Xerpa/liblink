@@ -16,5 +16,5 @@ use Mix.Config
 
 mix_env = Mix.env()
 
-config :tesla,
+config :liblink, :tesla,
   adapter: Module.concat([System.get_env("liblink_tesla_adapter") || "Tesla.Adapter.Httpc"])
