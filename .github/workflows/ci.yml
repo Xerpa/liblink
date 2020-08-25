@@ -10,6 +10,12 @@ jobs:
   mix_test:
     name: mix test (Elixir ${{matrix.elixir}} | OTP ${{matrix.otp}})
     runs-on: ubuntu-latest
+    services:
+      consul:
+        image: consul
+        ports:
+          - 8500:8500
+    
     strategy:
       fail-fast: false
       matrix:
